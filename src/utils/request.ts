@@ -1,20 +1,28 @@
+// utils/request.ts
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { useRouter } from 'vue-router'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL
-// 全局刷新锁
+declare module 'axios' {
+  interface AxiosInstance {
+    get<T>(url: string, config?: AxiosRequestConfig): Promise<T>
+    post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>
+  }
+}
+
 let isRefreshing = false
-// 等待刷新队列（暂存401请求）
-const waitQueue: Array<(token: string) => void> = []
+const waitQueue: Array<{
+  resolve: (value: any) => void
+  config: any
+}> = []
 
 const service = axios.create({
   baseURL,
   timeout: 15000
 })
 
-// 请求拦截器
+// ===== 请求拦截器 =====
 service.interceptors.request.use(config => {
   const userStore = useUserStore()
   if (userStore.accessToken) {
@@ -23,11 +31,11 @@ service.interceptors.request.use(config => {
   return config
 })
 
-// 响应拦截器
+// ===== 响应拦截器 =====
 service.interceptors.response.use(
   res => {
     const data = res.data
-    if (data.code !== 0) {
+    if (data.code !== 0 && data.code !== 401) {
       ElMessage.error(data.msg)
       return Promise.reject(data)
     }
@@ -35,47 +43,59 @@ service.interceptors.response.use(
   },
   async err => {
     const res = err.response
+    const config = err.config
     const userStore = useUserStore()
-    // 只有401未授权处理
-    if (res?.status === 401) {
-      // 情况1：正在刷新中，加入等待队列
-      if (isRefreshing) {
-        return new Promise(resolve => {
-          waitQueue.push((newToken) => {
-            res.config.headers.Authorization = `Bearer ${newToken}`
-            resolve(service(res.config))
-          })
-        })
-      }
 
-      // 情况2：开始刷新Token
-      isRefreshing = true
-      try {
-        // 刷新令牌
-        const refreshRes = await userStore.refreshUserToken()
-        if (refreshRes) {
-          // 刷新成功，执行队列里所有等待请求
-          waitQueue.forEach(fn => fn(userStore.accessToken))
-          waitQueue.length = 0
-          // 重试当前请求
-          res.config.headers.Authorization = `Bearer ${userStore.accessToken}`
-          return service(res.config)
-        }
-      } catch {
-        // 刷新失败，清空队列，退出登录+跳转登录页
-        waitQueue.length = 0
-        userStore.logout()
-        // 必须在刷新失败后获取路由实例跳转
-        const router = useRouter()
-        ElMessage.error('登录令牌失效，请重新登录')
-        router.replace('/login')
-      } finally {
-        isRefreshing = false
-      }
+    // 防止无限重试
+    if (config?._retry) {
       return Promise.reject(err)
     }
 
-    ElMessage.error(err.message || '网络请求失败')
+    // 401 处理
+    if (res?.status === 401) {
+      // 正在刷新中，加入队列
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          waitQueue.push({ resolve, config })
+        })
+      }
+
+      config._retry = true
+      isRefreshing = true
+
+      try {
+        const success = await userStore.refreshUserToken()
+
+        if (success) {
+          const newToken = userStore.accessToken
+          config.headers.Authorization = `Bearer ${newToken}`
+
+          // 处理等待队列
+          waitQueue.forEach(({ resolve, config: waitingConfig }) => {
+            waitingConfig.headers.Authorization = `Bearer ${newToken}`
+            resolve(service(waitingConfig))
+          })
+          waitQueue.length = 0
+
+          return service(config)
+        }
+
+        // 刷新失败
+        waitQueue.length = 0
+        userStore.logout()
+        return Promise.reject(err)
+      } catch (refreshErr) {
+        waitQueue.length = 0
+        return Promise.reject(refreshErr)
+      } finally {
+        isRefreshing = false
+      }
+    }
+
+    const msg = res?.data?.msg || err.message || '网络请求失败'
+    if (res?.status !== 401) {
+      ElMessage.error(msg)
+    }
     return Promise.reject(err)
   }
 )

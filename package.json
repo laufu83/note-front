@@ -18,7 +18,8 @@
     "pinia": "^2.1.7",
     "vditor": "^3.10.4",
     "vue": "^3.4.29",
-    "vue-router": "^4.4.0"
+    "vue-router": "^4.4.0",
+    "vue3-slide-verify": "^1.1.8"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.7",

@@ -8,10 +8,8 @@ export const CODE = {
   RATE_LIMIT: 429,
 } as const;
 
-export type CodeType = (typeof CODE)[keyof typeof CODE];
-
 export interface Resp<T = unknown> {
-  code: CodeType;
+  code: Number;
   msg: string;
   data?: T;
 }

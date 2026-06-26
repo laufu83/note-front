@@ -1,4 +1,4 @@
-// src/assets/style/index.scss
+// src/assets/style/common.scss
 // Element Plus 原生浅色主题全局样式
 
 // ============================================================
@@ -44,77 +44,10 @@ body {
 }
 
 // ============================================================
-// 工具类
-// ============================================================
-
-// --- 布局 ---
-.flex { display: flex; }
-.flex-center { display: flex; align-items: center; justify-content: center; }
-.flex-between { display: flex; align-items: center; justify-content: space-between; }
-.flex-col { display: flex; flex-direction: column; }
-.flex-1 { flex: 1; }
-.flex-wrap { flex-wrap: wrap; }
-
-// --- 文字 ---
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-.text-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.text-muted { color: #909399; }
-.text-secondary { color: #606266; }
-.text-primary { color: #409EFF; }
-.text-success { color: #67C23A; }
-.text-warning { color: #E6A23C; }
-.text-danger { color: #F56C6C; }
-
-// --- 间距 ---
-.gap-1 { gap: 4px; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.gap-4 { gap: 16px; }
-.gap-5 { gap: 20px; }
-.gap-6 { gap: 24px; }
-
-// --- 内边距 ---
-.p-1 { padding: 4px; }
-.p-2 { padding: 8px; }
-.p-3 { padding: 12px; }
-.p-4 { padding: 16px; }
-.p-5 { padding: 20px; }
-.p-6 { padding: 24px; }
-
-// --- 外边距 ---
-.m-1 { margin: 4px; }
-.m-2 { margin: 8px; }
-.m-3 { margin: 12px; }
-.m-4 { margin: 16px; }
-.m-5 { margin: 20px; }
-.m-6 { margin: 24px; }
-
-// --- 圆角 ---
-.rounded { border-radius: 4px; }
-.rounded-md { border-radius: 8px; }
-.rounded-lg { border-radius: 12px; }
-.rounded-full { border-radius: 9999px; }
-
-// --- 阴影 ---
-.shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
-.shadow { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
-.shadow-md { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07); }
-.shadow-lg { box-shadow: 0 10px 15px rgba(0, 0, 0, 0.08); }
-.shadow-hover { transition: box-shadow 0.3s; }
-.shadow-hover:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
-
-// --- 背景 ---
-.bg-white { background: #ffffff; }
-.bg-gray { background: #f5f7fa; }
-.bg-gray-light { background: #fafafa; }
-
-// ============================================================
 // Element Plus 浅色主题微调
 // ============================================================
 
-// 确保卡片在浅色背景下正常
+// 卡片
 .el-card {
   border-radius: 8px !important;
 }
@@ -123,23 +56,18 @@ body {
   border-bottom: 1px solid #ebeef5 !important;
 }
 
-// 表格边框颜色微调
+// 表格
 .el-table--border {
   border-color: #ebeef5 !important;
 }
 
-.el-table--border::after,
-.el-table--border .el-table__inner-wrapper::after {
-  background-color: #ebeef5 !important;
-}
-
-// 分页背景
+// 分页
 .el-pagination.is-background .el-pager li:not(.is-disabled).is-active {
   background-color: #409EFF !important;
   color: #fff !important;
 }
 
-// 标签圆角
+// 标签
 .el-tag {
   border-radius: 4px !important;
 }
@@ -161,73 +89,69 @@ body {
 }
 
 // ============================================================
-// 页面通用
+// 工具类
 // ============================================================
 
-// 页面容器
-.page-container {
-  padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
-}
+// 布局
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-1 { flex: 1; }
+.flex-wrap { flex-wrap: wrap; }
 
-// 卡片标题
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+// 文字
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+.text-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-muted { color: #909399; }
+.text-secondary { color: #606266; }
+.text-primary { color: #409EFF; }
+.text-success { color: #67C23A; }
+.text-warning { color: #E6A23C; }
+.text-danger { color: #F56C6C; }
 
-.card-title .el-icon {
-  color: #409EFF;
-}
+// 间距
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.gap-5 { gap: 20px; }
+.gap-6 { gap: 24px; }
 
-// ============================================================
+// 内边距
+.p-1 { padding: 4px; }
+.p-2 { padding: 8px; }
+.p-3 { padding: 12px; }
+.p-4 { padding: 16px; }
+.p-5 { padding: 20px; }
+.p-6 { padding: 24px; }
+
+// 外边距
+.m-1 { margin: 4px; }
+.m-2 { margin: 8px; }
+.m-3 { margin: 12px; }
+.m-4 { margin: 16px; }
+.m-5 { margin: 20px; }
+.m-6 { margin: 24px; }
+
+// 圆角
+.rounded { border-radius: 4px; }
+.rounded-md { border-radius: 8px; }
+.rounded-lg { border-radius: 12px; }
+.rounded-full { border-radius: 9999px; }
+
 // 动画
-// ============================================================
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade { animation: fadeIn 0.3s ease; }
 .animate-fade-up { animation: fadeInUp 0.3s ease; }
-.animate-fade-down { animation: fadeInDown 0.3s ease; }
-.animate-scale { animation: scaleIn 0.25s ease; }

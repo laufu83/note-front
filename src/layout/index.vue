@@ -43,8 +43,15 @@
           </template>
           <el-menu-item index="/manage/category">分类管理</el-menu-item>
           <el-menu-item index="/manage/tag">标签管理</el-menu-item>
-        </el-sub-menu>
-
+          </el-sub-menu>
+        <!-- 仅管理员可见：用户管理 -->
+         <el-menu-item v-if="userStore.role === 'admin'" index="/manage/user">        
+            <el-icon><User /></el-icon>
+            <template #title>
+              <span>用户管理</span>
+            </template>
+        </el-menu-item>
+      
         <!-- 文件管理 -->
         <el-menu-item index="/file">
           <el-icon><Folder /></el-icon>
@@ -92,7 +99,7 @@
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-icon><User /></el-icon>
-              <span>{{ userStore.user?.name || '用户' }}</span>
+              <span>{{ userStore.role === 'admin' ? '管理员' : '普通用户' }}</span>            
               <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>

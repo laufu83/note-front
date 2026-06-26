@@ -90,6 +90,15 @@ const routes: RouteRecordRaw[] = [
         name: "Setting",
         component: () => import("@/views/setting/index.vue"),
       },
+      {
+  path: 'manage/user',
+  name: 'UserManage',
+  component: () => import('@/views/manage/user.vue'),
+  meta: {
+    title: '用户管理',
+    requireAdmin: true
+  }
+},
     ],
   },
 ];

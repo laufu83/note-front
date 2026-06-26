@@ -11,7 +11,7 @@
       </div>
 
       <!-- Tabs -->
-      <el-tabs v-model="activeTab" class="login-tabs" stretch>
+      <el-tabs v-model="activeTab" class="login-tabs" stretch @tab-change="handleTabChange">
         <el-tab-pane label="登录" name="login">
           <el-form
             ref="loginRef"
@@ -37,6 +37,27 @@
                 show-password
               />
             </el-form-item>
+
+            <!-- 图形验证码 -->
+            <el-form-item prop="captchaCode">
+              <div class="captcha-row">
+                <el-input
+                  v-model="loginForm.captchaCode"
+                  placeholder="请输入4位验证码"
+                  size="large"
+                  maxlength="4"
+                  @keyup.enter="login"
+                />
+                <img 
+                  class="captcha-img"
+                  :src="loginCaptchaUrl"
+                  @click="refreshLoginCaptcha"
+                  alt="点击刷新验证码"
+                  title="点击刷新"
+                />
+              </div>
+            </el-form-item>
+
             <div class="form-options">
               <el-checkbox v-model="rememberMe">记住我</el-checkbox>
               <el-link type="primary" :underline="false" @click="openForgotDialog">忘记密码？</el-link>
@@ -87,6 +108,27 @@
                 show-password
               />
             </el-form-item>
+
+            <!-- 图形验证码 -->
+            <el-form-item prop="captchaCode">
+              <div class="captcha-row">
+                <el-input
+                  v-model="regForm.captchaCode"
+                  placeholder="请输入4位验证码"
+                  size="large"
+                  maxlength="4"
+                  @keyup.enter="register"
+                />
+                <img 
+                  class="captcha-img"
+                  :src="regCaptchaUrl"
+                  @click="refreshRegCaptcha"
+                  alt="点击刷新验证码"
+                  title="点击刷新"
+                />
+              </div>
+            </el-form-item>
+
             <el-button
               type="primary"
               size="large"
@@ -103,7 +145,7 @@
 
       <!-- 底部 -->
       <div class="footer-info">
-        <span>© 2025 智慧笔记 · 安全高效</span>
+        <span>© 2026 智慧笔记 · 安全高效</span>
       </div>
     </el-card>
 
@@ -138,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import request from '@/utils/request'
@@ -153,22 +195,171 @@ const rememberMe = ref(true)
 const loginLoading = ref(false)
 const regLoading = ref(false)
 
-const loginRef = ref<InstanceType<typeof ElForm>>()
-const loginForm = reactive({ username: '', password: '' })
-const loginRules: FormRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+// 验证码
+let loginCaptchaKey = ''
+let regCaptchaKey = ''
+const loginCaptchaUrl = ref('')
+const regCaptchaUrl = ref('')
+
+interface Resp<T> {
+  code: number
+  msg: string
+  data: T
 }
 
-// 忘记密码弹窗
+type CaptchaInfoResp = Resp<{
+  key: string
+  svg: string
+}>
+
+// 加载登录验证码
+const refreshLoginCaptcha = async () => {
+  try {
+    const res = await request.get<CaptchaInfoResp>('/api/captcha/img', {
+      headers: { Authorization: '' }
+    })
+    loginCaptchaKey = res.data.key
+    // SVG 转为 data URL 显示
+    loginCaptchaUrl.value = `data:image/svg+xml;utf8,${encodeURIComponent(res.data.svg)}`
+    loginForm.captchaCode = ''
+  } catch (err) {
+    ElMessage.error('验证码加载失败，请刷新页面')
+  }
+}
+
+// 加载注册验证码
+const refreshRegCaptcha = async () => {
+  try {
+    const res = await request.get<CaptchaInfoResp>('/api/captcha/img', {
+      headers: { Authorization: '' }
+    })
+    regCaptchaKey = res.data.key
+    regCaptchaUrl.value = `data:image/svg+xml;utf8,${encodeURIComponent(res.data.svg)}`
+    regForm.captchaCode = ''
+  } catch (err) {
+    ElMessage.error('验证码加载失败，请刷新页面')
+  }
+}
+
+const handleTabChange = () => {
+  if (activeTab.value === 'login') {
+    refreshLoginCaptcha()
+  } else {
+    refreshRegCaptcha()
+  }
+}
+
+onMounted(() => {
+  refreshLoginCaptcha()
+})
+
+// 登录表单
+const loginRef = ref<InstanceType<typeof ElForm>>()
+const loginForm = reactive({
+  username: '',
+  password: '',
+  captchaCode: '',
+  captchaToken: ''
+})
+const loginRules: FormRules = {
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  captchaCode: [{ required: true, message: '请输入图形验证码', trigger: 'blur' }]
+}
+
+// 注册表单
+const regRef = ref<InstanceType<typeof ElForm>>()
+const regForm = reactive({
+  username: '',
+  email: '',
+  password: '',
+  captchaCode: '',
+  captchaToken: ''
+})
+const regRules: FormRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 2, max: 12, message: '用户名长度2-12位', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式错误', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请设置密码', trigger: 'blur' },
+    { min: 6, message: '密码至少6位', trigger: 'blur' }
+  ],
+  captchaCode: [{ required: true, message: '请输入图形验证码', trigger: 'blur' }]
+}
+
+// 校验验证码
+const verifyCaptcha = async (key: string, code: string): Promise<string | null> => {
+  try {
+    const res = await request.post('/api/captcha/verify',
+      { key, code: code.toUpperCase() },
+      { headers: { Authorization: '' } }
+    )
+    return res.data
+  } catch {
+    activeTab.value === 'login' ? refreshLoginCaptcha() : refreshRegCaptcha()
+    return null
+  }
+}
+
+// 登录
+async function login() {
+  try {
+    await loginRef.value?.validate()
+    loginLoading.value = true
+
+    const token = await verifyCaptcha(loginCaptchaKey, loginForm.captchaCode)
+    if (!token) return
+    loginForm.captchaToken = token
+
+    const res = await request.post('/api/user/login', loginForm, {
+      headers: { Authorization: '' }
+    })
+    userStore.setToken(res.data.accessToken, res.data.refreshToken, res.data.uid, res.data.role)
+    ElMessage.success('登录成功')
+    router.replace('/dashboard')
+  } catch (err: any) {
+    if (err.msg?.includes('账号尚未激活')) openResendDialog()
+  } finally {
+    loginLoading.value = false
+  }
+}
+
+// 注册
+async function register() {
+  try {
+    await regRef.value?.validate()
+    regLoading.value = true
+
+    const token = await verifyCaptcha(regCaptchaKey, regForm.captchaCode)
+    if (!token) return
+    regForm.captchaToken = token
+
+    await request.post('/api/user/register', regForm, {
+      headers: { Authorization: '' }
+    })
+    ElMessage.success('注册成功，请前往邮箱激活账号')
+    activeTab.value = 'login'
+    loginForm.username = regForm.username
+    refreshLoginCaptcha()
+  } finally {
+    regLoading.value = false
+  }
+}
+
+// 忘记密码
 const forgotVisible = ref(false)
 const forgotLoading = ref(false)
 const forgotRef = ref<InstanceType<typeof ElForm>>()
 const forgotForm = reactive({ email: '' })
 const forgotRules: FormRules = {
   email: [
-    { required: true, message: '请输入注册邮箱', trigger: 'blur' },
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式错误', trigger: 'blur' }
   ]
 }
 const openForgotDialog = () => {
@@ -180,20 +371,20 @@ const sendResetPwdMail = async () => {
   forgotLoading.value = true
   try {
     await request.post('/api/user/reset-pwd-send', forgotForm, { headers: { Authorization: '' } })
-    ElMessage.success('密码重置邮件已发送，请前往邮箱查收')
+    ElMessage.success('重置邮件已发送')
     forgotVisible.value = false
   } finally {
     forgotLoading.value = false
   }
 }
 
-// 重发激活邮件弹窗
+// 重发激活邮件
 const resendVisible = ref(false)
 const resendLoading = ref(false)
 const resendRef = ref<InstanceType<typeof ElForm>>()
 const resendForm = reactive({ email: '' })
-const openResendDialog = (email?: string) => {
-  resendForm.email = email || ''
+const openResendDialog = () => {
+  resendForm.email = ''
   resendVisible.value = true
 }
 const resendActivateMail = async () => {
@@ -201,67 +392,10 @@ const resendActivateMail = async () => {
   resendLoading.value = true
   try {
     await request.post('/api/user/resend-activate', resendForm, { headers: { Authorization: '' } })
-    ElMessage.success('激活邮件已重新发送，请查收')
+    ElMessage.success('激活邮件已重发')
     resendVisible.value = false
   } finally {
     resendLoading.value = false
-  }
-}
-
-async function login() {
-  try {
-    await loginRef.value?.validate()
-    loginLoading.value = true
-
-    const config = { headers: { Authorization: '' } }
-    const res = await request.post('/api/user/login', loginForm, config)
-
-    userStore.setToken(res.data.accessToken, res.data.refreshToken, res.data.uid)
-    ElMessage.success('登录成功，欢迎回来！')
-    router.replace('/dashboard')
-  } catch (err: any) {
-    // 捕获未激活错误，弹出重发激活弹窗
-    if (err?.msg?.includes('账号尚未激活')) {
-      openResendDialog()
-    }
-  } finally {
-    loginLoading.value = false
-  }
-}
-
-const regRef = ref<InstanceType<typeof ElForm>>()
-const regForm = reactive({ username: '', email: '', password: '' })
-const regRules: FormRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 2, max: 12, message: '用户名长度在 2 到 12 个字符', trigger: 'blur' }
-  ],
-  email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请设置密码', trigger: 'blur' },
-    { min: 6, message: '密码至少 6 位', trigger: 'blur' }
-  ]
-}
-
-async function register() {
-  try {
-    await regRef.value?.validate()
-    regLoading.value = true
-
-    const config = { headers: { Authorization: '' } }
-    await request.post('/api/user/register', regForm, config)
-
-    ElMessage.success('注册成功，请前往邮箱激活账号后登录')
-    activeTab.value = 'login'
-    loginForm.username = regForm.username
-    loginForm.password = ''
-  } catch (error) {
-    // 错误已由拦截器处理
-  } finally {
-    regLoading.value = false
   }
 }
 </script>
@@ -276,7 +410,7 @@ async function register() {
 }
 
 .login-card {
-  width: 420px;
+  width: 460px;
   padding: 10px 20px 20px;
   border-radius: 12px;
 }
@@ -285,7 +419,6 @@ async function register() {
   padding: 10px 0 0;
 }
 
-/* ===== 品牌 ===== */
 .brand-header {
   text-align: center;
   margin-bottom: 20px;
@@ -318,7 +451,6 @@ async function register() {
   margin: 0;
 }
 
-/* ===== Tabs ===== */
 .login-tabs {
   margin-top: 4px;
 }
@@ -332,7 +464,6 @@ async function register() {
   font-weight: 500;
 }
 
-/* ===== 表单 ===== */
 .login-form {
   padding: 0 2px;
 }
@@ -343,6 +474,27 @@ async function register() {
 
 :deep(.el-input__inner) {
   height: 42px;
+}
+
+/* ===== 验证码 ===== */
+.captcha-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.captcha-row .el-input {
+  flex: 1;
+}
+
+.captcha-img {
+  width: 120px;
+  height: 42px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid #dcdfe6;
+  background: #f5f7fa;
 }
 
 .form-options {
@@ -361,7 +513,6 @@ async function register() {
   border-radius: 8px;
 }
 
-/* ===== 底部 ===== */
 .footer-info {
   text-align: center;
   margin-top: 18px;
@@ -375,24 +526,24 @@ async function register() {
   margin-top: 16px;
 }
 
-/* ===== 响应式 ===== */
 @media (max-width: 500px) {
   .login-card {
-    width: 92%;
+    width: 96%;
     padding: 10px 12px 16px;
   }
-
   .brand-title {
     font-size: 20px;
   }
-
   .logo-icon {
     width: 48px;
     height: 48px;
   }
-
   .logo-icon .el-icon {
     font-size: 24px !important;
+  }
+  .captcha-img {
+    width: 90px;
+    height: 36px;
   }
 }
 </style>
