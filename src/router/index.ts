@@ -9,10 +9,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/views/login/index.vue"),
     meta: { title: "用户登录" },
   },
-    {
-    path: '/register',
-    name: 'Register',
-    component: () => import('@/views/register/index.vue'),
+  {
+    path: "/register",
+    name: "Register",
+    component: () => import("@/views/register/index.vue"),
     meta: { title: "用户注册" },
   },
   {
@@ -43,6 +43,12 @@ const routes: RouteRecordRaw[] = [
     path: "/activate",
     name: "Activate",
     component: () => import("@/views/user/Activate.vue"),
+    meta: { title: "账号激活" },
+  },
+    {
+    path: "/change-email",
+    name: "Activate",
+    component: () => import("@/views/user/ChangeEmail.vue"),
     meta: { title: "账号激活" },
   },
   {
@@ -118,6 +124,12 @@ const routes: RouteRecordRaw[] = [
           title: "用户管理",
           requireAdmin: true,
         },
+      },
+      {
+        path: "user/profile",
+        name: "Profile",
+        component: () => import("@/views/user/Profile.vue"),
+        meta: {  title: "用户信息",requiresAuth: true },
       },
     ],
   },

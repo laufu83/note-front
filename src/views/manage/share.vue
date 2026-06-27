@@ -110,6 +110,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getShareList, deleteShare, type ShareItem } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { formatTime } from '@/utils/format'
 import { 
   Share as ShareIcon,
   Refresh, 
@@ -167,18 +168,7 @@ async function handleDelete(id: number) {
   }
 }
 
-// ===== 格式化时间 =====
-function formatTime(time: string) {
-  if (!time) return '-'
-  const date = new Date(time)
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+
 
 // ===== 判断是否过期 =====
 function isExpired(expireAt: string) {

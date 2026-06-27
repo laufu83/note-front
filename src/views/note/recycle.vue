@@ -77,12 +77,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { getNoteList, restoreNote, permanentDeleteNote, clearTrash, type Note } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Refresh, RefreshLeft, DeleteFilled } from '@element-plus/icons-vue'
+import { formatTime } from '@/utils/format'
 
-const router = useRouter()
 const loading = ref(false)
 const clearing = ref(false)
 const tableData = ref<Note[]>([])
@@ -92,7 +91,7 @@ async function loadData() {
   loading.value = true
   try {
     const res = await getNoteList({ 
-      is_delete: true,
+      trash: 1,
       page: 1, 
       size: 999 
     })
@@ -186,19 +185,6 @@ function getRemainingDays(deletedAt: string) {
   // 假设保留30天
   const remaining = 30 - days
   return remaining > 0 ? remaining : 0
-}
-
-// ===== 格式化时间 =====
-function formatTime(time: string) {
-  if (!time) return '-'
-  const date = new Date(time)
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
 
 // ===== 生命周期 =====

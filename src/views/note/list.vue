@@ -124,15 +124,15 @@
 
         <el-table-column label="更新时间" width="170" prop="updated_at" align="center">
           <template #default="{ row }">
-            <span>{{ formatTime(row.updated_at) }}</span>
+            <span>{{ formatCNTime(row.updated_at) }}</span>
           </template>
         </el-table-column>
 
         <el-table-column label="操作" width="240" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click="edit(row.id)">编辑</el-button>
+            <el-button size="small" type="primary" link @click.stop="edit(row.id)">编辑</el-button>
             <el-button size="small" type="success" link @click.stop="openShare(row)">分享</el-button>
-            <el-button size="small" type="danger" link @click="handleDelete(row.id)">删除</el-button>
+            <el-button size="small" type="danger" link @click.stop="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -199,6 +199,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getNoteList, deleteNote, createShare, type Note } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { formatCNTime } from '@/utils/format'
 import { 
   Document, 
   Plus, 
@@ -332,27 +333,6 @@ async function handleCreateShare() {
   } finally {
     shareLoading.value = false
   }
-}
-
-// ===== 格式化时间 =====
-function formatTime(time: string) {
-  if (!time) return '-'
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
-  
-  return date.toLocaleDateString('zh-CN', { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
 
 // ===== 生命周期 =====

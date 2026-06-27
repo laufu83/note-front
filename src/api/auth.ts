@@ -125,6 +125,11 @@ export const activateAccount = (params: ActivateParams) => {
   })
 }
 
+export const changeEmail = (params: ActivateParams) => {
+  return request.get<Resp<null>>(`/api/user/change-email?token=${encodeURIComponent(params.token)}`, {
+    headers: { Authorization: '' }
+  })
+}
 /**
  * 刷新 Token
  */

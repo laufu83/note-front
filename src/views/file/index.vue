@@ -104,7 +104,7 @@
 
         <el-table-column label="上传时间" width="170" prop="created_at" align="center">
           <template #default="{ row }">
-            {{ formatTime(row.created_at) }}
+            {{ formatCNTime(row.created_at) }}
           </template>
         </el-table-column>
 
@@ -139,7 +139,7 @@
           <p><strong>文件名：</strong>{{ previewFileData.file_name }}</p>
           <p><strong>类型：</strong>{{ previewFileData.mime_type }}</p>
           <p><strong>大小：</strong>{{ formatFileSize(previewFileData.size) }}</p>
-          <p><strong>上传时间：</strong>{{ formatTime(previewFileData.created_at) }}</p>
+          <p><strong>上传时间：</strong>{{ formatCNTime(previewFileData.created_at) }}</p>
           <el-button type="primary" @click="copyUrl(previewFileData.storage_path)">复制链接</el-button>
         </div>
       </div>
@@ -162,7 +162,7 @@ import {
 import { useUserStore } from '@/stores/user'
 import { getFileList, deleteFile as deleteFileApi, getFileUrl } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
-
+import { formatCNTime } from '@/utils/format'
 const userStore = useUserStore()
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -250,17 +250,7 @@ function formatFileSize(bytes: number) {
   return `${size.toFixed(1)} ${units[unitIndex]}`
 }
 
-function formatTime(time: string) {
-  if (!time) return '-'
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
-  return date.toLocaleDateString('zh-CN')
-}
+
 
 // ===== API 调用 =====
 async function loadData() {

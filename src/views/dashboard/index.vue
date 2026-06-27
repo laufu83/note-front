@@ -20,7 +20,7 @@
     <!-- 操作栏 -->
     <div class="action-bar">
       <div class="action-left">
-        <span class="greeting">👋 你好，{{ username }}</span>
+        <span class="greeting">👋 你好，{{ displayUsername  }}</span>
         <span class="date">{{ currentDate }}</span>
       </div>
       <div class="action-right">
@@ -55,7 +55,7 @@
         </el-table-column>
         <el-table-column prop="updated_at" label="更新时间" width="180" align="center">
           <template #default="{ row }">
-            <span>{{ formatTime(row.updated_at) }}</span>
+            <span>{{ formatCNTime(row.updated_at) }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="120" align="center">
@@ -77,9 +77,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getNoteList } from '@/api'
+import { getNoteList,exportNote } from '@/api'
+import { formatCNTime } from '@/utils/format'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 import { ElMessage, ElLoading } from 'element-plus'
@@ -92,7 +92,6 @@ import {
   Download
 } from '@element-plus/icons-vue'
 
-const router = useRouter()
 const userStore = useUserStore()
 
 const totalNote = ref(0)
@@ -100,8 +99,22 @@ const starCount = ref(0)
 const draftCount = ref(0)
 const trashCount = ref(0)
 const recentList = ref<any[]>([])
-const username = ref(userStore.userInfo?.username || '用户')
+
 const currentDate = ref('')
+// ✅ 使用 computed 计算显示用户名，安全访问 userInfo
+const displayUsername = computed(() => {
+  // 优先从 userInfo 获取
+  if (userStore.userInfo?.username) {
+    return userStore.userInfo.username
+  }
+  // 其次从 localStorage 获取
+  const storedUsername = localStorage.getItem('username')
+  if (storedUsername) {
+    return storedUsername
+  }
+  // 默认值
+  return '用户'
+})
 
 const stats = computed(() => [
   { 
@@ -130,20 +143,7 @@ const stats = computed(() => [
   }
 ])
 
-function formatTime(time: string) {
-  if (!time) return '-'
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-  if (diff < 172800000) return '昨天'
-  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
-  
-  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
-}
+
 
 function getCurrentDate() {
   const now = new Date()
@@ -172,6 +172,16 @@ async function loadData() {
     ElMessage.error('加载数据失败，请刷新重试')
   }
 }
+  // ===== 获取用户信息 =====
+// ===== 获取用户信息 =====
+async function loadUserInfo() {
+  // 如果 userStore 中已有用户信息，直接使用
+  if (userStore.userInfo) {
+    return
+  }  
+  // 否则从 API 获取
+  await userStore.fetchUserInfo()
+}
 
 async function exportAll() {
   const loadingInstance = ElLoading.service({
@@ -182,9 +192,9 @@ async function exportAll() {
   
   try {
     const zip = new JSZip()
-    const res = await getNoteList({ page: 1, size: 9999 })
+    const res = await exportNote({ page: 1, size: 9999 })
       // 使用可选链和空值合并运算符安全地获取列表
-    const list = res?.data?.list ?? []
+    const list = res?.data ?? []
     
     if (list.length === 0) {
       loadingInstance.close()
@@ -222,16 +232,14 @@ async function exportAll() {
     loadingInstance.close()
     ElMessage.error('导出失败，请重试')
   }
+
+
 }
 
 onMounted(() => {
+  loadUserInfo()
   loadData()
   currentDate.value = getCurrentDate()
-  
-  const userInfo = userStore.userInfo
-  if (userInfo?.username) {
-    username.value = userInfo.username
-  }
 })
 
 let dateInterval: NodeJS.Timeout

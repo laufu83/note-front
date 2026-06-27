@@ -137,7 +137,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getUserListApi, updateUserApi, adminResetUserPwdApi, type UserItem } from '@/api'
 import { User, Edit, Key } from '@element-plus/icons-vue'
-
+import { formatTime } from '@/utils/format'
 const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref<UserItem[]>([])
@@ -252,18 +252,7 @@ const submitResetPwd = async () => {
   }
 }
 
-// ===== 格式化时间 =====
-const formatTime = (time: string) => {
-  if (!time) return '-'
-  const date = new Date(time)
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+
 
 onMounted(loadUserList)
 </script>

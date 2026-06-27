@@ -78,15 +78,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { getShareDetail, type ShareDetail } from '@/api'
 import { CODE } from '@/types/response'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 import { Document, Lock, Clock, View, Warning } from '@element-plus/icons-vue'
-
+import { formatTime } from '@/utils/format'
 const route = useRoute()
-const router = useRouter()
+
 const shareCode = route.params.code as string
 const urlPwd = route.query.pwd as string
 
@@ -138,18 +138,6 @@ async function init() {
   await handleVerify()
 }
 
-// ===== 格式化时间 =====
-function formatTime(time: string) {
-  if (!time) return '-'
-  const date = new Date(time)
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 
 onMounted(init)
 </script>

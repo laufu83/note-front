@@ -39,6 +39,7 @@ export interface NoteListParams {
   is_star?: boolean
   is_top?: boolean
   is_delete?: boolean
+  trash?: number
   categoryId?: number
   tagName?: string
 }
@@ -75,12 +76,7 @@ export interface RollbackNoteParams {
   historyId: number
 }
 
-// export interface CreateShareParams {
-//   noteId: number
-//   password?: string
-//   permission?: string
-//   expireDays?: number
-// }
+
 
 export interface ShareResponse {
   shareUrl: string
@@ -98,6 +94,9 @@ export const getNoteList = (params: NoteListParams) => {
   return request.get<Resp<NoteListResponse>>('/api/note', { params })
 }
 
+export const exportNote = (params: NoteListParams) => {
+  return request.get<Resp<Note[]>>('/api/note/export', { params })
+}
 /**
  * 获取笔记详情
  */
@@ -151,14 +150,14 @@ export const batchDeleteNotes = (ids: number[]) => {
  * 恢复笔记（从回收站）
  */
 export const restoreNote = (id: number) => {
-  return request.post<Resp<null>>(`/api/note/${id}/restore`)
+  return request.put<Resp<null>>(`/api/note/${id}/restore`)
 }
 
 /**
  * 永久删除笔记
  */
 export const permanentDeleteNote = (id: number) => {
-  return request.delete<Resp<null>>(`/api/note/${id}/permanent`)
+  return request.delete<Resp<null>>(`/api/note/${id}/destroy`)
 }
 
 /**
@@ -168,9 +167,3 @@ export const clearTrash = () => {
   return request.delete<Resp<null>>('/api/note/trash/clear')
 }
 
-/**
- * 创建分享
- */
-// export const createShare = (params: CreateShareParams) => {
-//   return request.post<Resp<ShareResponse>>('/api/share/create', params)
-// }

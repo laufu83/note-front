@@ -3,15 +3,15 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { refreshToken } from '@/api'
-
+import { refreshToken,getCurrentUserInfo} from '@/api'
+import type { UserItem } from '@/api'
 export const useUserStore = defineStore('user', () => {
   // ===== State =====
   const accessToken = ref(localStorage.getItem('accessToken') || '')
   const refreshTokenValue = ref(localStorage.getItem('refreshToken') || '')
   const uid = ref(Number(localStorage.getItem('uid')) || 0)
   const role = ref(localStorage.getItem('role') || 'user')
-
+  const userInfo = ref<UserItem | null>(null)
   // ===== 设置 Token =====
   function setToken(access: string, refresh: string, userId: number, userRole: string) {
     accessToken.value = access
@@ -52,7 +52,26 @@ export const useUserStore = defineStore('user', () => {
       return false
     }
   }
-
+ // ===== 获取当前用户信息 =====
+  async function fetchUserInfo(): Promise<boolean> {
+    try {
+      const res = await getCurrentUserInfo()
+      if (res.code === 0 && res.data) {
+        userInfo.value = res.data
+        // 更新 uid 和 role（确保与后端一致）
+        uid.value = res.data.id
+        role.value = res.data.role
+        localStorage.setItem('uid', String(res.data.id))
+        localStorage.setItem('role', res.data.role)
+        localStorage.setItem('usename', res.data.username)
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('获取用户信息失败', error)
+      return false
+    }
+  }
   // ===== 退出登录 =====
   function logout() {
     accessToken.value = ''
@@ -90,7 +109,9 @@ export const useUserStore = defineStore('user', () => {
     refreshToken: refreshTokenValue,
     uid,
     role,
+    userInfo,
     setToken,
+    fetchUserInfo,
     refreshUserToken,
     logout,
     restoreToken

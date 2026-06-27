@@ -2,7 +2,7 @@
   <div class="activate-page">
     <div class="card success">
       <div class="icon">✅</div>
-      <h2>账号激活成功</h2>
+      <h2>激活成功</h2>
       <p>您的邮箱已验证，现在可以正常登录系统</p>
       <button @click="$router.push('/login')">前往登录</button>
     </div>

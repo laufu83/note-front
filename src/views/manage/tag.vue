@@ -82,7 +82,7 @@ import { ref, onMounted } from 'vue'
 import { getTagList, createTag, deleteTag, type Tag } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { PriceTag, Plus } from '@element-plus/icons-vue'
-
+import { formatTime } from '@/utils/format'
 const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref<Tag[]>([])
@@ -153,19 +153,6 @@ async function handleDelete(id: number) {
       ElMessage.error('删除失败')
     }
   }
-}
-
-// ===== 格式化时间 =====
-function formatTime(time: string) {
-  if (!time) return '-'
-  const date = new Date(time)
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
 
 // ===== 生命周期 =====

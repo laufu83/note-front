@@ -99,7 +99,7 @@
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-icon><User /></el-icon>
-              <span>{{ userStore.role === 'admin' ? '管理员' : '普通用户' }}</span>            
+              <span>{{ userStore.userInfo?.username}} ({{ userStore.role === 'admin' ? '系统管理员' : '普通用户' }})</span>            
               <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
@@ -166,7 +166,7 @@ function handleCommand(cmd: string) {
       userStore.logout()
       break
     case 'profile':
-      router.push('/setting')
+      router.push('/user/profile')
       break
     case 'setting':
       router.push('/setting')

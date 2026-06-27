@@ -15,7 +15,7 @@
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { activateAccount } from '@/api'
+import { changeEmail } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,12 +29,12 @@ onMounted(async () => {
   }
 
   try {
-    await activateAccount({ token })
+    await changeEmail({ token })
     // 激活成功跳转成功页
     router.replace('/activate-success')
   } catch (err: any) {
     // 激活失败携带错误提示跳转失败页
-    const msg = err?.msg || '激活链接无效或已过期，请重新注册'
+    const msg = err?.msg || '激活链接无效或已过期，请重新设置'
     router.replace({
       path: '/activate-fail',
       query: { msg }

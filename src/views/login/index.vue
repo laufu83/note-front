@@ -165,6 +165,11 @@ const frozenVisible = ref(false)
 const refreshLoginCaptcha = async () => {
   try {
     const res = await getCaptcha()
+     // 类型守卫：严格判断data存在
+    if (!res.data) {
+      ElMessage.error('服务端返回数据异常，请稍后重试')
+      return
+    }
     loginCaptchaKey = res.data.key
     loginCaptchaUrl.value = `data:image/svg+xml;utf8,${encodeURIComponent(res.data.svg)}`
     loginForm.captchaCode = ''
@@ -213,6 +218,11 @@ async function handleLogin() {
     loginForm.captchaToken = token
 
     const res = await login(loginForm)
+     // 类型守卫：严格判断data存在
+    if (!res.data) {
+      ElMessage.error('服务端返回数据异常，请稍后重试')
+      return
+    }
     userStore.setToken(res.data.accessToken, res.data.refreshToken, res.data.uid, res.data.role)
     ElMessage.success('登录成功')
     router.replace('/dashboard')

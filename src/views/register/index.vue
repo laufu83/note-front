@@ -117,6 +117,11 @@ const regCaptchaUrl = ref('')
 const refreshRegCaptcha = async () => {
   try {
     const res = await getCaptcha()
+     // 类型守卫：严格判断data存在
+    if (!res.data) {
+      ElMessage.error('服务端返回数据异常，请稍后重试')
+      return
+    }
     regCaptchaKey = res.data.key
     regCaptchaUrl.value = `data:image/svg+xml;utf8,${encodeURIComponent(res.data.svg)}`
     regForm.captchaCode = ''
@@ -158,6 +163,11 @@ const regRules: FormRules = {
 const validateCaptcha = async (key: string, code: string): Promise<string | null> => {
   try {
     const res = await verifyCaptcha({ key, code: code.toUpperCase() })
+     // 类型守卫：严格判断data存在
+    if (!res.data) {
+      ElMessage.error('服务端返回数据异常，请稍后重试')
+      return null
+    }
     return res.data
   } catch {
     refreshRegCaptcha()

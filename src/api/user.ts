@@ -8,6 +8,7 @@ export interface UserItem {
   id: number
   username: string
   email?: string
+  avatar?:string
   role: 'admin' | 'user'
   status: 'active' | 'inactive'
   is_frozen: boolean
@@ -30,10 +31,21 @@ export interface ChangePasswordParams {
   oldPwd: string
   newPwd: string
 }
-
+export interface UpdateUserInfoParams {
+  email?: string
+  username?: string
+  avatar?:string
+}
 export type UserListResponse = UserItem[]
 
 // ===== API 接口 =====
+
+/**
+ * 获取当前用户信息
+ */
+export const getCurrentUserInfo = () => {
+  return request.get<Resp<UserItem>>('/api/user/info')
+}
 
 /**
  * 获取用户列表（管理员）
@@ -78,3 +90,9 @@ export const destroyAccount = () => {
   return request.delete<Resp<null>>('/api/user/destroy')
 }
 
+/**
+ * 更新当前用户信息
+ */
+export const updateCurrentUserInfo = (params: UpdateUserInfoParams) => {
+  return request.post<Resp<string>>('/api/user/profile', params)
+}
