@@ -45,7 +45,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/views/user/Activate.vue"),
     meta: { title: "账号激活" },
   },
-    {
+  {
     path: "/change-email",
     name: "Activate",
     component: () => import("@/views/user/ChangeEmail.vue"),
@@ -129,7 +129,16 @@ const routes: RouteRecordRaw[] = [
         path: "user/profile",
         name: "Profile",
         component: () => import("@/views/user/Profile.vue"),
-        meta: {  title: "用户信息",requiresAuth: true },
+        meta: { title: "用户信息", requiresAuth: true },
+      },
+      {
+        path: "/system/config",
+        name: "ConfigDict",
+        component: () => import("@/views/system/ConfigDict.vue"),
+        meta: {
+          title: "系统配置字典",
+          requireAdmin: true,
+        },
       },
     ],
   },

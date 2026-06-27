@@ -75,6 +75,15 @@
             <span>个人设置</span>
           </template>
         </el-menu-item>
+
+         <!-- 数据字典 -->
+        <el-menu-item v-if="userStore.role === 'admin'" index="/system/config">
+          <el-icon><Collection /></el-icon>
+          <template #title>
+            <span>数据字典</span>
+          </template>
+        </el-menu-item>
+        
       </el-menu>
     </el-aside>
 
