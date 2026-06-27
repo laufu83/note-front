@@ -13,3 +13,11 @@ export interface Resp<T = unknown> {
   msg: string;
   data?: T;
 }
+
+// 分页响应
+export interface PageResp<T> {
+  list: T[]
+  total: number
+  page: number
+  size: number
+}

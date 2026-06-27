@@ -1,3 +1,5 @@
+<!-- src/views/TagManage.vue - 使用分离的 API -->
+
 <template>
   <div class="tag-manage">
     <!-- 页面头部 -->
@@ -29,7 +31,7 @@
         </el-table-column>
         <el-table-column label="操作" width="150" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="danger" link @click="del(row.id)">删除</el-button>
+            <el-button size="small" type="danger" link @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -77,13 +79,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import request from '@/utils/request'
+import { getTagList, createTag, deleteTag, type Tag } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { PriceTag, Plus } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const submitting = ref(false)
-const tableData = ref<any[]>([])
+const tableData = ref<Tag[]>([])
 const dialogVisible = ref(false)
 
 const formRef = ref()
@@ -100,8 +102,9 @@ const formRules = {
 async function load() {
   loading.value = true
   try {
-    const res = await request.get('/api/tag')
-    tableData.value = res.data || []
+    const res = await getTagList()
+    // 实际返回：res.data 直接是数组
+    tableData.value = Array.isArray(res?.data) ? res.data : []
   } catch (error) {
     ElMessage.error('加载数据失败')
   } finally {
@@ -121,7 +124,7 @@ async function submit() {
     await formRef.value?.validate()
     submitting.value = true
 
-    await request.post('/api/tag', form.value)
+    await createTag(form.value)
     dialogVisible.value = false
     ElMessage.success('新增成功')
     load()
@@ -135,14 +138,14 @@ async function submit() {
 }
 
 // ===== 删除 =====
-async function del(id: number) {
+async function handleDelete(id: number) {
   try {
     await ElMessageBox.confirm('确定要删除这个标签吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await request.delete(`/api/tag/${id}`)
+    await deleteTag(id)
     ElMessage.success('删除成功')
     load()
   } catch (error) {

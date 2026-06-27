@@ -1,3 +1,5 @@
+<!-- src/views/NoteEdit.vue - 修复 Vditor 上传 handler 类型 -->
+
 <template>
   <div class="note-edit">
     <!-- 页面头部 -->
@@ -7,7 +9,7 @@
         <h2 class="page-title">{{ isEdit ? '编辑笔记' : '新建笔记' }}</h2>
       </div>
       <div class="header-right">
-        <el-button @click="save" type="primary" size="large" :loading="saving">
+        <el-button @click="handleSave" type="primary" size="large" :loading="saving">
           {{ saving ? '保存中...' : '保存笔记' }}
         </el-button>
       </div>
@@ -85,7 +87,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
-import request from '@/utils/request'
+import { getCategoryList } from '@/api/category'
+import { getTagList } from '@/api/tag'
+import { getNoteDetail, createNote, updateNote } from '@/api'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 
@@ -117,11 +121,11 @@ const tagList = ref<any[]>([])
 async function loadBase() {
   try {
     const [cateRes, tagRes] = await Promise.all([
-      request.get('/api/category'),
-      request.get('/api/tag')
+      getCategoryList(),
+      getTagList()
     ])
-    categoryList.value = cateRes.data || []
-    tagList.value = tagRes.data || []
+    categoryList.value = Array.isArray(cateRes?.data) ? cateRes.data : []
+    tagList.value = Array.isArray(tagRes?.data) ? tagRes.data : []
   } catch (error) {
     ElMessage.error('加载分类、标签数据失败')
   }
@@ -131,8 +135,13 @@ async function loadBase() {
 async function loadDetail() {
   if (!noteId.value) return
   try {
-    const res = await request.get(`/api/note/${noteId.value}`)
-    const data = res.data
+    const res = await getNoteDetail(noteId.value)
+    const data = res?.data
+    if (!data) {
+      ElMessage.error('笔记数据为空')
+      return
+    }
+    
     form.value.title = data.title || ''
     form.value.categoryIds = data.categoryIds || []
     form.value.tagNames = data.tagNames || []
@@ -156,6 +165,9 @@ async function loadDetail() {
 
 // ===== 编辑器初始化 =====
 function initEditor() {
+  // 获取 accessToken
+  const accessToken = localStorage.getItem('accessToken') || ''
+  
   vditor = new Vditor('vditor', {
     height: 500,
     mode: 'sv',
@@ -191,12 +203,15 @@ function initEditor() {
     upload: {
       url: '/api/file/upload',
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        Authorization: `Bearer ${accessToken}`
       },
       accept: 'image/*',
       max: 20 * 1024 * 1024,
-      handler: () => {
-        return Promise.resolve()
+      // 修复 handler 类型：返回 Promise<string> 或 string
+      handler: (files: File[]): Promise<string> => {
+        // 由于 Vditor 会通过 url 自动上传，这里不需要额外处理
+        // 但必须返回一个 Promise<string> 以符合类型要求
+        return Promise.resolve('')
       }
     },
     after: () => {
@@ -211,7 +226,7 @@ function isArrayEqual(a: any[], b: any[]) {
 }
 
 // ===== 保存提交 =====
-async function save() {
+async function handleSave() {
   const content = vditor?.getValue() || ''
   const title = form.value.title.trim()
 
@@ -227,28 +242,52 @@ async function save() {
 
   saving.value = true
   try {
-    const payload: Record<string, any> = {
-      title,
-      content,
-      is_top: form.value.properties.includes('is_top'),
-      is_star: form.value.properties.includes('is_star'),
-      is_draft: form.value.properties.includes('is_draft')
-    }
-
     if (isEdit.value) {
-      // 编辑：仅修改过才携带分类、标签字段，避免误清空
+      // 编辑：构建 UpdateNoteParams 类型的对象
+      const payload: {
+        title: string
+        content: string
+        is_top?: boolean
+        is_star?: boolean
+        is_draft?: boolean
+        categoryIds?: number[]
+        tagNames?: string[]
+      } = {
+        title,
+        content,
+        is_top: form.value.properties.includes('is_top'),
+        is_star: form.value.properties.includes('is_star'),
+        is_draft: form.value.properties.includes('is_draft')
+      }
+
+      // 仅修改过才携带分类、标签字段，避免误清空
       if (!isArrayEqual(form.value.categoryIds, originCategoryIds.value)) {
         payload.categoryIds = form.value.categoryIds
       }
       if (!isArrayEqual(form.value.tagNames, originTagNames.value)) {
         payload.tagNames = form.value.tagNames
       }
-      await request.put(`/api/note/${noteId.value}`, payload)
+      await updateNote(noteId.value, payload)
     } else {
-      // 新建笔记必须携带分类标签
-      payload.categoryIds = form.value.categoryIds
-      payload.tagNames = form.value.tagNames
-      await request.post('/api/note', payload)
+      // 新建：构建 CreateNoteParams 类型的对象
+      const payload: {
+        title: string
+        content: string
+        is_top: boolean
+        is_star: boolean
+        is_draft: boolean
+        categoryIds: number[]
+        tagNames: string[]
+      } = {
+        title,
+        content,
+        is_top: form.value.properties.includes('is_top'),
+        is_star: form.value.properties.includes('is_star'),
+        is_draft: form.value.properties.includes('is_draft'),
+        categoryIds: form.value.categoryIds,
+        tagNames: form.value.tagNames
+      }
+      await createNote(payload)
     }
 
     ElMessage.success('保存成功')

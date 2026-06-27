@@ -1,20 +1,21 @@
+// src/stores/user.ts - 使用分离的 API
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
-import type { Resp } from '@/types/response'
+import { refreshToken } from '@/api'
 
 export const useUserStore = defineStore('user', () => {
   // ===== State =====
   const accessToken = ref(localStorage.getItem('accessToken') || '')
-  const refreshToken = ref(localStorage.getItem('refreshToken') || '')
+  const refreshTokenValue = ref(localStorage.getItem('refreshToken') || '')
   const uid = ref(Number(localStorage.getItem('uid')) || 0)
   const role = ref(localStorage.getItem('role') || 'user')
 
   // ===== 设置 Token =====
   function setToken(access: string, refresh: string, userId: number, userRole: string) {
     accessToken.value = access
-    refreshToken.value = refresh
+    refreshTokenValue.value = refresh
     uid.value = userId
     role.value = userRole
     localStorage.setItem('accessToken', access)
@@ -25,25 +26,17 @@ export const useUserStore = defineStore('user', () => {
 
   // ===== 刷新 Token =====
   async function refreshUserToken(): Promise<boolean> {
-    const refresh = refreshToken.value
+    const refresh = refreshTokenValue.value
     if (!refresh) {
       logout()
       return false
     }
 
     try {
-      // 使用 axios 直接请求，避免拦截器循环
-      const { default: axios } = await import('axios')
-      const baseURL = import.meta.env.VITE_API_BASE_URL
+      const res = await refreshToken(refresh)
 
-      const res = await axios.post<Resp<{ accessToken: string }>>(
-        `${baseURL}/api/user/refresh-token`,
-        { refreshToken: refresh },
-        { headers: { 'Content-Type': 'application/json' } }
-      )
-
-      if (res.data?.code === 0 && res.data?.data?.accessToken) {
-        const newAccessToken = res.data.data.accessToken
+      if (res.code === 0 && res.data?.accessToken) {
+        const newAccessToken = res.data.accessToken
         // 更新 accessToken，保留 refreshToken
         accessToken.value = newAccessToken
         localStorage.setItem('accessToken', newAccessToken)
@@ -63,7 +56,7 @@ export const useUserStore = defineStore('user', () => {
   // ===== 退出登录 =====
   function logout() {
     accessToken.value = ''
-    refreshToken.value = ''
+    refreshTokenValue.value = ''
     uid.value = 0
     role.value = 'user'
     localStorage.removeItem('accessToken')
@@ -72,7 +65,7 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('role')
     ElMessage.info('已退出登录')
     // 跳转到登录页
-    if (window.location.pathname !== '/login') {
+    if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
       window.location.href = '/login'
     }
   }
@@ -86,7 +79,7 @@ export const useUserStore = defineStore('user', () => {
 
     if (access && refresh) {
       accessToken.value = access
-      refreshToken.value = refresh
+      refreshTokenValue.value = refresh
       uid.value = Number(userId) || 0
       role.value = userRole || 'user'
     }
@@ -94,7 +87,7 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     accessToken,
-    refreshToken,
+    refreshToken: refreshTokenValue,
     uid,
     role,
     setToken,

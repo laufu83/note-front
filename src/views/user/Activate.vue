@@ -1,3 +1,5 @@
+<!-- src/views/Activate.vue - 使用分离的 API -->
+
 <template>
   <div class="activate-wrap">
     <el-card class="loading-card" shadow="hover">
@@ -13,13 +15,14 @@
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import request from '@/utils/request'
+import { activateAccount } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
 
 onMounted(async () => {
   const token = route.query.token as string
+  
   if (!token) {
     ElMessage.error('激活参数缺失，请从邮件内链接访问')
     router.replace('/login')
@@ -27,10 +30,8 @@ onMounted(async () => {
   }
 
   try {
-    await request.get(`/api/user/activate?token=${encodeURIComponent(token)}`, {
-      headers: { Authorization: '' }
-    })
-    // 激活成功跳成功页
+    await activateAccount({ token })
+    // 激活成功跳转成功页
     router.replace('/activate-success')
   } catch (err: any) {
     // 激活失败携带错误提示跳转失败页
@@ -51,16 +52,31 @@ onMounted(async () => {
   justify-content: center;
   background: #f0f2f5;
 }
+
 .loading-card {
   padding: 40px 60px;
   border-radius: 12px;
 }
+
+:deep(.loading-card .el-card__body) {
+  padding: 0;
+}
+
 .loading-box {
   text-align: center;
 }
+
 .tip {
   margin-top: 16px;
   font-size: 15px;
   color: #666;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 480px) {
+  .loading-card {
+    padding: 30px 20px;
+    width: 90%;
+  }
 }
 </style>

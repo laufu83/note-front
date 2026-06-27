@@ -1,3 +1,5 @@
+<!-- src/views/UserManage.vue - 优化后的用户管理页面 -->
+
 <template>
   <div class="user-manage-page">
     <el-card shadow="hover">
@@ -48,7 +50,7 @@
           <template #default="{ row }">
             <el-switch
               :model-value="row.is_frozen"
-              @change="(val) => handleToggleFrozen(row, val)"
+              @change="(val: boolean) => handleToggleFrozen(row, val)"
             />
           </template>
         </el-table-column>
@@ -133,7 +135,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getUserListApi, updateUserApi, adminResetUserPwdApi, type UserItem } from '@/api/user'
+import { getUserListApi, updateUserApi, adminResetUserPwdApi, type UserItem } from '@/api'
 import { User, Edit, Key } from '@element-plus/icons-vue'
 
 const loading = ref(false)
@@ -163,7 +165,7 @@ const loadUserList = async () => {
   try {
     const resp = await getUserListApi()
     // resp 现在是 Resp<UserItem[]>
-    tableData.value = resp.data ?? []
+    tableData.value = Array.isArray(resp?.data) ? resp.data : []
   } catch (error) {
     console.error('获取用户列表失败', error)
     ElMessage.error('加载用户列表失败')
@@ -175,18 +177,20 @@ const loadUserList = async () => {
 // ===== 冻结/解冻账号 =====
 const handleToggleFrozen = async (row: UserItem, value: boolean) => {
   const newFrozen = value
+  // 先乐观更新 UI
+  const oldFrozen = row.is_frozen
+  row.is_frozen = newFrozen
+  
   try {
     await updateUserApi({
       userId: row.id,
       isFrozen: newFrozen
     })
-    // 更新本地数据
-    row.is_frozen = newFrozen
     ElMessage.success(newFrozen ? '账号已冻结' : '账号已解冻')
   } catch {
-    ElMessage.error('操作失败')
     // 恢复原状态
-    row.is_frozen = !newFrozen
+    row.is_frozen = oldFrozen
+    ElMessage.error('操作失败')
   }
 }
 

@@ -3,7 +3,7 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
-const baseURL = import.meta.env.VITE_API_BASE_URL
+const { VITE_USE_PROXY, VITE_API_BASE_URL, VITE_API_PREFIX } = import.meta.env
 declare module 'axios' {
   interface AxiosInstance {
     get<T>(url: string, config?: AxiosRequestConfig): Promise<T>
@@ -18,7 +18,8 @@ const waitQueue: Array<{
 }> = []
 
 const service = axios.create({
-  baseURL,
+  // 开启代理用相对路径，否则用完整线上地址
+  baseURL: VITE_USE_PROXY === 'true' ? '' : VITE_API_BASE_URL,
   timeout: 15000
 })
 
@@ -35,7 +36,7 @@ service.interceptors.request.use(config => {
 service.interceptors.response.use(
   res => {
     const data = res.data
-    if (data.code !== 0 && data.code !== 401) {
+    if (data.code !== 0) {
       ElMessage.error(data.msg)
       return Promise.reject(data)
     }

@@ -61,7 +61,7 @@
         </el-menu-item>
 
         <!-- 分享管理 -->
-        <el-menu-item index="/share/manage">
+        <el-menu-item index="/manage/share">
           <el-icon><Share /></el-icon>
           <template #title>
             <span>分享管理</span>

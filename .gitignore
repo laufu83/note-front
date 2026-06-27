@@ -11,7 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
-
+# 线上真实生产环境配置（禁止提交）
+.env.production
+# 可以保留提交（公共默认模板）
+.env
+.env.development
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

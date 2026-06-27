@@ -1,10 +1,12 @@
+<!-- src/views/ShareManage.vue - 修复类型冲突 -->
+
 <template>
   <div class="share-manage">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
         <h2 class="page-title">
-          <el-icon><Share /></el-icon>
+          <el-icon><ShareIcon /></el-icon>
           分享管理
         </h2>
         <span class="count">共 {{ tableData.length }} 个分享</span>
@@ -77,14 +79,14 @@
               link
               @click="copyLink(row.share_code)"
             >
-              <el-icon><Link /></el-icon>
+              <el-icon><LinkIcon /></el-icon>
               复制链接
             </el-button>
             <el-button
               size="small"
               type="danger"
               link
-              @click="del(row.id)"
+              @click="handleDelete(row.id)"
             >
               <el-icon><Delete /></el-icon>
               销毁
@@ -106,20 +108,28 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import request from '@/utils/request'
+import { getShareList, deleteShare, type ShareItem } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Share, Refresh, Lock, Unlock, Link, Delete } from '@element-plus/icons-vue'
+import { 
+  Share as ShareIcon,
+  Refresh, 
+  Lock, 
+  Unlock, 
+  Link as LinkIcon, 
+  Delete 
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const loading = ref(false)
-const tableData = ref<any[]>([])
+const tableData = ref<ShareItem[]>([])
 
 // ===== 加载数据 =====
 async function load() {
   loading.value = true
   try {
-    const res = await request.get('/api/share/list')
-    tableData.value = res.data || []
+    const res = await getShareList()
+    // 实际返回：res.data 直接是数组
+    tableData.value = Array.isArray(res?.data) ? res.data : []
   } catch (error) {
     ElMessage.error('加载数据失败')
   } finally {
@@ -139,7 +149,7 @@ async function copyLink(code: string) {
 }
 
 // ===== 销毁分享 =====
-async function del(id: number) {
+async function handleDelete(id: number) {
   try {
     await ElMessageBox.confirm('销毁后链接将无法访问，确定继续吗？', '提示', {
       confirmButtonText: '确定销毁',
@@ -147,7 +157,7 @@ async function del(id: number) {
       type: 'warning',
       confirmButtonClass: 'el-button--danger'
     })
-    await request.delete(`/api/share/${id}`)
+    await deleteShare(id)
     ElMessage.success('已销毁')
     load()
   } catch (error) {

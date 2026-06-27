@@ -1,26 +1,80 @@
+// src/api/user.ts - 更新用户管理相关接口（添加密码修改和账号注销）
+
 import request from '@/utils/request'
 import type { Resp } from '@/types/response'
 
+// ===== 类型定义 =====
 export interface UserItem {
   id: number
   username: string
-  email: string | null
+  email?: string
   role: 'admin' | 'user'
   status: 'active' | 'inactive'
   is_frozen: boolean
   created_at: string
+  updated_at?: string
 }
 
-// 获取用户列表
+export interface UpdateUserParams {
+  userId: number
+  role?: 'admin' | 'user'
+  isFrozen?: boolean
+}
+
+export interface AdminResetPwdParams {
+  userId: number
+  newPwd: string
+}
+
+export interface ChangePasswordParams {
+  oldPwd: string
+  newPwd: string
+}
+
+export type UserListResponse = UserItem[]
+
+// ===== API 接口 =====
+
+/**
+ * 获取用户列表（管理员）
+ */
 export const getUserListApi = () => {
-  return request.get<Resp<UserItem[]>>('/api/user/list')
-}
-// 更新用户角色/冻结状态
-export const updateUserApi = (data: { userId: number; role?: string; isFrozen?: boolean }) => {
-  return request.post<Resp<null>>('/api/user/update', data)
+  return request.get<Resp<UserListResponse>>('/api/user/list')
 }
 
-// 管理员重置用户密码
-export const adminResetUserPwdApi = (data: { userId: number; newPwd: string }) => {
-  return request.post<Resp<null>>('/api/user/admin-reset-pwd', data)
+/**
+ * 更新用户信息（管理员）
+ */
+export const updateUserApi = (params: UpdateUserParams) => {
+  return request.post<Resp<null>>(`/api/user/update`, params)
 }
+
+/**
+ * 重置用户密码（管理员）
+ */
+export const adminResetUserPwdApi = (params: AdminResetPwdParams) => {
+  const { userId, ...data } = params
+  return request.post<Resp<null>>(`/api/user/admin-reset-pwd`, data)
+}
+
+/**
+ * 删除用户（管理员）
+ */
+export const deleteUserApi = (userId: number) => {
+  return request.delete<Resp<null>>(`/api/users/${userId}`)
+}
+
+/**
+ * 修改当前用户密码
+ */
+export const changePassword = (params: ChangePasswordParams) => {
+  return request.post<Resp<null>>('/api/user/change-pwd', params)
+}
+
+/**
+ * 注销当前用户账号
+ */
+export const destroyAccount = () => {
+  return request.delete<Resp<null>>('/api/user/destroy')
+}
+

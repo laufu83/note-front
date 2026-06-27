@@ -1,3 +1,5 @@
+<!-- src/views/NoteList.vue - 使用分离的 API -->
+
 <template>
   <div class="note-list">
     <!-- 页面头部 -->
@@ -23,7 +25,7 @@
       <div class="filter-content">
         <div class="filter-left">
           <el-input
-            v-model="query.q"
+            v-model="query.keyword"
             placeholder="搜索标题或内容..."
             prefix-icon="Search"
             clearable
@@ -81,23 +83,23 @@
           </template>
         </el-table-column>
 
-      <el-table-column label="分类" min-width="150" align="center">
-  <template #default="{ row }">
-    <div class="cate-cell" v-if="row.categoryNames && row.categoryNames.length">
-      <el-tag
-        v-for="name in row.categoryNames"
-        :key="name"
-        size="small"
-        type="primary"
-        plain
-        class="cate-item"
-      >
-        {{ name }}
-      </el-tag>
-    </div>
-    <span v-else class="empty-text">未分类</span>
-  </template>
-</el-table-column>
+        <el-table-column label="分类" min-width="150" align="center">
+          <template #default="{ row }">
+            <div class="cate-cell" v-if="row.categoryNames && row.categoryNames.length">
+              <el-tag
+                v-for="name in row.categoryNames"
+                :key="name"
+                size="small"
+                type="primary"
+                plain
+                class="cate-item"
+              >
+                {{ name }}
+              </el-tag>
+            </div>
+            <span v-else class="empty-text">未分类</span>
+          </template>
+        </el-table-column>
 
         <el-table-column label="标签" min-width="150" prop="tags" align="center">
           <template #default="{ row }">
@@ -130,7 +132,7 @@
           <template #default="{ row }">
             <el-button size="small" type="primary" link @click="edit(row.id)">编辑</el-button>
             <el-button size="small" type="success" link @click.stop="openShare(row)">分享</el-button>
-            <el-button size="small" type="danger" link @click="toRecycle(row.id)">删除</el-button>
+            <el-button size="small" type="danger" link @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -184,7 +186,7 @@
       </el-form>
       <template #footer>
         <el-button @click="shareVisible = false">取消</el-button>
-        <el-button type="primary" @click="createShare" :loading="shareLoading">
+        <el-button type="primary" @click="handleCreateShare" :loading="shareLoading">
           {{ shareLoading ? '创建中...' : '创建分享' }}
         </el-button>
       </template>
@@ -195,38 +197,29 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import request from '@/utils/request'
+import { getNoteList, deleteNote, createShare, type Note } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Document, 
   Plus, 
   Refresh, 
-  List,
-  Edit,
-  Share,
-  Delete,
-  Star,
-  Top,
-  EditPen,
-  View,
-  Lock
+  List
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const loading = ref(false)
-const tableData = ref<any[]>([])
+const tableData = ref<Note[]>([])
 const total = ref(0)
 const query = ref({ 
   page: 1, 
   size: 10, 
-  q: '',
+  keyword: '',
   status: '' 
 })
 
 // 分享相关
 const shareVisible = ref(false)
 const shareLoading = ref(false)
-const shareNoteTitle = ref('')
 const shareForm = ref({ 
   noteId: 0, 
   password: '', 
@@ -241,16 +234,23 @@ async function loadList() {
     const params: any = {
       page: query.value.page,
       size: query.value.size,
-      q: query.value.q
+      q: query.value.keyword
     }
     
-    if (query.value.status === 'draft') params.draft = '1'
-    if (query.value.status === 'star') params.star = '1'
-    if (query.value.status === 'published') params.draft = '0'
+    // 根据状态筛选
+    if (query.value.status === 'draft') {
+      params.is_draft = true
+    } else if (query.value.status === 'star') {
+      params.is_star = true
+    } else if (query.value.status === 'top') {
+      params.is_top = true
+    } else if (query.value.status === 'published') {
+      params.is_draft = false
+    }
 
-    const res = await request.get('/api/note', { params })
-    tableData.value = res.data.list || []
-    total.value = res.data.total || 0
+    const res = await getNoteList(params)
+    tableData.value = res?.data?.list || []
+    total.value = res?.data?.total || 0
   } catch (error) {
     ElMessage.error('加载笔记列表失败')
   } finally {
@@ -264,12 +264,12 @@ function edit(id: number) {
 }
 
 // ===== 行点击跳转 =====
-function handleRowClick(row: any) {
+function handleRowClick(row: Note) {
   edit(row.id)
 }
 
 // ===== 移入回收站 =====
-async function toRecycle(id: number) {
+async function handleDelete(id: number) {
   try {
     await ElMessageBox.confirm(
       '确定要移入回收站吗？',
@@ -280,7 +280,7 @@ async function toRecycle(id: number) {
         type: 'warning'
       }
     )
-    await request.delete(`/api/note/${id}`)
+    await deleteNote(id)
     ElMessage.success('已移入回收站')
     loadList()
   } catch (error) {
@@ -291,16 +291,15 @@ async function toRecycle(id: number) {
 }
 
 // ===== 分享 =====
-function openShare(row: any) {
+function openShare(row: Note) {
   shareForm.value.noteId = row.id
-  shareNoteTitle.value = row.title || '无标题笔记'
   shareForm.value.password = ''
   shareForm.value.permission = 'read'
   shareForm.value.expireDays = 7
   shareVisible.value = true
 }
 
-async function createShare() {
+async function handleCreateShare() {
   if (!shareForm.value.noteId) {
     ElMessage.warning('请选择要分享的笔记')
     return
@@ -308,7 +307,7 @@ async function createShare() {
   
   shareLoading.value = true
   try {
-    const res = await request.post('/api/share/create', {
+    const res = await createShare({
       noteId: shareForm.value.noteId,
       password: shareForm.value.password || undefined,
       permission: shareForm.value.permission,
@@ -317,8 +316,8 @@ async function createShare() {
     
     ElMessage.success('分享创建成功！')
     
-    if (res.data?.shareUrl || res.data?.url) {
-      const url = res.data.shareUrl || res.data.url
+    if (res.data?.shareUrl) {
+      const url = res.data.shareUrl
       try {
         await navigator.clipboard.writeText(url)
         ElMessage.success('分享链接已自动复制到剪贴板')
@@ -516,15 +515,18 @@ onMounted(() => {
   color: #c0c4cc;
   font-size: 13px;
 }
+
 .cate-cell {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
   justify-content: center;
 }
+
 .cate-item {
   font-size: 12px;
 }
+
 /* ===== 空状态 ===== */
 .empty-state {
   padding: 40px 0;

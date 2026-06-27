@@ -1,3 +1,5 @@
+<!-- src/views/ShareView.vue - 修复类型问题 -->
+
 <template>
   <div class="share-wrap">
     <!-- 密码验证 -->
@@ -8,13 +10,13 @@
         <p class="subtitle">此笔记已加密，请输入访问密码</p>
       </div>
 
-      <el-form @submit.prevent="check" class="pwd-form">
+      <el-form @submit.prevent="handleVerify" class="pwd-form">
         <el-input
           v-model="pwd"
           placeholder="请输入访问密码"
           size="large"
           show-password
-          @keyup.enter="check"
+          @keyup.enter="handleVerify"
         >
           <template #prefix>
             <el-icon><Lock /></el-icon>
@@ -23,7 +25,7 @@
         <el-button
           type="primary"
           size="large"
-          @click="check"
+          @click="handleVerify"
           :loading="loading"
           block
         >
@@ -37,7 +39,7 @@
     </el-card>
 
     <!-- 笔记内容 -->
-    <el-card v-else class="share-card" shadow="hover">
+    <el-card v-else-if="detail" class="share-card" shadow="hover">
       <div class="note-header">
         <h2 class="note-title">{{ detail.title || '无标题笔记' }}</h2>
         <div class="note-meta">
@@ -77,7 +79,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import request from '@/utils/request'
+import { getShareDetail, type ShareDetail } from '@/api'
 import { CODE } from '@/types/response'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
@@ -85,35 +87,36 @@ import { Document, Lock, Clock, View, Warning } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
-const code = route.params.code as string
+const shareCode = route.params.code as string
 const urlPwd = route.query.pwd as string
 
 const needPwd = ref(false)
 const loading = ref(false)
 const errorMsg = ref('')
 const pwd = ref(urlPwd || '')
-const detail = ref({
-  title: '',
-  content: '',
-  updated_at: '',
-  view_count: 0
-})
+const detail = ref<ShareDetail | null>(null)
 const html = ref('')
 
-// ===== 验证密码 =====
-async function check() {
+// ===== 验证密码/获取分享内容 =====
+async function handleVerify() {
   loading.value = true
   errorMsg.value = ''
+  
   try {
-    const params: Record<string, string> = {}
-    if (pwd.value) params.pwd = pwd.value
-
-    const res = await request.get(`/api/share/${code}`, { params })
-    detail.value = res.data
-    html.value = marked.parse(detail.value.content || '') as string
+    const res = await getShareDetail(shareCode, pwd.value || undefined)
+    // 安全获取数据
+    const data = res?.data
+    if (!data) {
+      errorMsg.value = '分享数据为空'
+      return
+    }
+    
+    detail.value = data
+    html.value = marked.parse(data.content || '') as string
     needPwd.value = false
     if (!urlPwd) ElMessage.success('验证成功')
   } catch (err: any) {
+    // 检查是否需要密码（401 未授权）
     if (err.code === CODE.UNAUTH) {
       needPwd.value = true
       if (err.msg?.includes('密码错误')) {
@@ -132,7 +135,7 @@ async function check() {
 
 // ===== 初始化 =====
 async function init() {
-  await check()
+  await handleVerify()
 }
 
 // ===== 格式化时间 =====

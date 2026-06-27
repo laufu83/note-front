@@ -1,3 +1,5 @@
+<!-- src/views/Setting.vue - 使用分离的 API -->
+
 <template>
   <div class="setting-page">
     <!-- 修改密码 -->
@@ -46,7 +48,7 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="changePwd" :loading="pwdLoading">
+          <el-button type="primary" @click="handleChangePassword" :loading="pwdLoading">
             {{ pwdLoading ? '修改中...' : '修改密码' }}
           </el-button>
         </el-form-item>
@@ -69,7 +71,7 @@
           <el-icon class="danger-icon"><InfoFilled /></el-icon>
           <span>注销账号后，您的所有笔记、文件和数据将被永久删除，且无法恢复。</span>
         </div>
-        <el-button type="danger" @click="destroyAccount" :loading="destroyLoading">
+        <el-button type="danger" @click="handleDestroyAccount" :loading="destroyLoading">
           {{ destroyLoading ? '注销中...' : '永久注销账号' }}
         </el-button>
       </div>
@@ -80,8 +82,8 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useUserStore } from '@/stores/user'
-import request from '@/utils/request'
-import { ElMessage, ElForm, ElMessageBox, type FormRules } from 'element-plus'
+import { changePassword, destroyAccount } from '@/api'
+import { ElMessage, ElMessageBox, ElForm, type FormRules } from 'element-plus'
 import { Lock, Warning, InfoFilled } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
@@ -119,17 +121,22 @@ const formRules: FormRules = {
 }
 
 // ===== 修改密码 =====
-async function changePwd() {
+async function handleChangePassword() {
   try {
     await formRef.value?.validate()
     pwdLoading.value = true
 
-    await request.post('/api/user/change-pwd', {
+    await changePassword({
       oldPwd: form.oldPwd,
       newPwd: form.newPwd
     })
 
     ElMessage.success('密码修改成功，请重新登录')
+    // 清空表单
+    form.oldPwd = ''
+    form.newPwd = ''
+    form.confirmPwd = ''
+    // 注销并跳转到登录页
     userStore.logout()
   } catch (error) {
     // 错误已由拦截器处理
@@ -139,7 +146,7 @@ async function changePwd() {
 }
 
 // ===== 注销账号 =====
-async function destroyAccount() {
+async function handleDestroyAccount() {
   try {
     await ElMessageBox.confirm(
       '永久注销账号后，所有数据将无法恢复，确定继续吗？',
@@ -153,8 +160,9 @@ async function destroyAccount() {
     )
 
     destroyLoading.value = true
-    await request.delete('/api/user/destroy')
+    await destroyAccount()
     ElMessage.success('账号已注销，再见 👋')
+    // 注销并跳转到登录页
     userStore.logout()
   } catch (error) {
     if (error !== 'cancel') {

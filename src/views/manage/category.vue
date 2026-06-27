@@ -1,3 +1,5 @@
+<!-- src/views/CategoryManage.vue - 使用分离的 API -->
+
 <template>
   <div class="category-manage">
     <!-- 页面头部 -->
@@ -46,7 +48,7 @@
               <el-icon><Edit /></el-icon>
               编辑
             </el-button>
-            <el-button size="small" type="danger" link @click="del(row.id)">
+            <el-button size="small" type="danger" link @click="handleDelete(row.id)">
               <el-icon><Delete /></el-icon>
               删除
             </el-button>
@@ -109,13 +111,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import request from '@/utils/request'
+import { getCategoryList, createCategory, updateCategory, deleteCategory, type Category } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Folder, Plus, Edit, Delete } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const submitting = ref(false)
-const tableData = ref<any[]>([])
+const tableData = ref<Category[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 
@@ -143,8 +145,9 @@ const dialogTitle = computed(() => isEdit.value ? '编辑分类' : '新增分类
 async function load() {
   loading.value = true
   try {
-    const res = await request.get('/api/category')
-    tableData.value = res.data || []
+    const res = await getCategoryList()
+    // 实际返回：res.data 直接是数组
+    tableData.value = Array.isArray(res?.data) ? res.data : []
   } catch (error) {
     ElMessage.error('加载数据失败')
   } finally {
@@ -160,7 +163,7 @@ function openDialog() {
 }
 
 // ===== 打开编辑对话框 =====
-function editRow(row: any) {
+function editRow(row: Category) {
   isEdit.value = true
   form.value = { ...row }
   dialogVisible.value = true
@@ -173,12 +176,13 @@ async function submit() {
     submitting.value = true
 
     if (isEdit.value) {
-      await request.put(`/api/category/${form.value.id}`, {
+      await updateCategory({
+        id: form.value.id,
         name: form.value.name,
         sort: form.value.sort
       })
     } else {
-      await request.post('/api/category', {
+      await createCategory({
         name: form.value.name,
         sort: form.value.sort
       })
@@ -197,14 +201,14 @@ async function submit() {
 }
 
 // ===== 删除 =====
-async function del(id: number) {
+async function handleDelete(id: number) {
   try {
     await ElMessageBox.confirm('确定要删除这个分类吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await request.delete(`/api/category/${id}`)
+    await deleteCategory(id)
     ElMessage.success('删除成功')
     load()
   } catch (error) {

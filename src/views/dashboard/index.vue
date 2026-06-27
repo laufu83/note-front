@@ -79,19 +79,17 @@
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import request from '@/utils/request'
+import { getNoteList } from '@/api'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElLoading } from 'element-plus'
 import { 
   Document, 
   Star, 
   EditPen, 
   Delete, 
   Clock, 
-  Download,
-  ArrowRight,
-  Select
+  Download
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -159,8 +157,9 @@ function getCurrentDate() {
 
 async function loadData() {
   try {
-    const res = await request.get('/api/note', { params: { page: 1, size: 1000 } })
-    const list = res.data.list || []
+    const res = await getNoteList({ page: 1, size: 1000 })
+      // 使用可选链和空值合并运算符安全地获取列表
+    const list = res?.data?.list ?? []
     totalNote.value = list.filter((i: any) => !i.is_delete).length
     starCount.value = list.filter((i: any) => i.is_star && !i.is_delete).length
     draftCount.value = list.filter((i: any) => i.is_draft && !i.is_delete).length
@@ -175,14 +174,20 @@ async function loadData() {
 }
 
 async function exportAll() {
+  const loadingInstance = ElLoading.service({
+    lock: true,
+    text: '正在打包导出笔记...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+  
   try {
-    const loading = ElMessage.loading('正在打包导出笔记...', { duration: 0 })
     const zip = new JSZip()
-    const res = await request.get('/api/note', { params: { page: 1, size: 9999 } })
-    const list = res.data.list || []
+    const res = await getNoteList({ page: 1, size: 9999 })
+      // 使用可选链和空值合并运算符安全地获取列表
+    const list = res?.data?.list ?? []
     
     if (list.length === 0) {
-      loading.close()
+      loadingInstance.close()
       ElMessage.warning('没有可导出的笔记')
       return
     }
@@ -190,25 +195,31 @@ async function exportAll() {
     const normalNotes = list.filter((i: any) => !i.is_delete)
     const deletedNotes = list.filter((i: any) => i.is_delete)
     
+    // 创建有效笔记文件夹 - 使用非空断言或类型守卫
     if (normalNotes.length > 0) {
       const normalFolder = zip.folder('有效笔记')
+      // 使用非空断言操作符 (!) 告诉 TypeScript 这个值不为 null
+      // 因为在 length > 0 时，folder 方法一定会返回一个有效对象
       normalNotes.forEach((item: any) => {
-        normalFolder.file(`${item.title || '无标题'}.md`, item.content || '')
+        normalFolder!.file(`${item.title || '无标题'}.md`, item.content || '')
       })
     }
     
+    // 创建回收站笔记文件夹
     if (deletedNotes.length > 0) {
       const deletedFolder = zip.folder('回收站笔记')
+      // 使用非空断言操作符 (!) 告诉 TypeScript 这个值不为 null
       deletedNotes.forEach((item: any) => {
-        deletedFolder.file(`${item.title || '无标题'}.md`, item.content || '')
+        deletedFolder!.file(`${item.title || '无标题'}.md`, item.content || '')
       })
     }
     
     const blob = await zip.generateAsync({ type: 'blob' })
     saveAs(blob, `全部笔记_${new Date().toLocaleDateString('zh-CN')}.zip`)
-    loading.close()
+    loadingInstance.close()
     ElMessage.success(`成功导出 ${list.length} 篇笔记`)
   } catch (error) {
+    loadingInstance.close()
     ElMessage.error('导出失败，请重试')
   }
 }

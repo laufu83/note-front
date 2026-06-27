@@ -20,17 +20,17 @@
 
     <!-- 上传区域 -->
     <el-card class="upload-card" shadow="hover">
-    <el-upload
-  ref="uploadRef"
-  :action="uploadActionUrl"
-  :headers="uploadHeaders"
-  :on-success="handleSuccess"
-  :on-error="handleError"
-  :before-upload="beforeUpload"
-  :show-file-list="false"
-  drag
-  class="upload-dragger"
->
+      <el-upload
+        ref="uploadRef"
+        :action="uploadActionUrl"
+        :headers="uploadHeaders"
+        :on-success="handleSuccess"
+        :on-error="handleError"
+        :before-upload="beforeUpload"
+        :show-file-list="false"
+        drag
+        class="upload-dragger"
+      >
         <el-icon class="upload-icon"><Upload /></el-icon>
         <div class="upload-text">
           <div class="main-text">点击或拖拽文件到此上传</div>
@@ -112,7 +112,7 @@
           <template #default="{ row }">
             <el-button size="small" type="primary" link @click="previewFile(row)">预览</el-button>
             <el-button size="small" type="success" link @click="copyUrl(row.storage_path)">复制链接</el-button>
-            <el-button size="small" type="danger" link @click="deleteFile(row.storage_path)">删除</el-button>
+            <el-button size="small" type="danger" link @click="handleDeleteFile(row.storage_path)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -160,7 +160,7 @@ import {
   Headset
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import request from '@/utils/request'
+import { getFileList, deleteFile as deleteFileApi, getFileUrl } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const userStore = useUserStore()
@@ -170,15 +170,15 @@ const searchKeyword = ref('')
 const previewVisible = ref(false)
 const previewFileData = ref<any>(null)
 
-  // 后端上传绝对地址，解决3000端口404
+// 后端上传地址
 const uploadActionUrl = `${import.meta.env.VITE_API_BASE_URL}/api/file/upload`
-// 存储桶配置化
-const SUPABASE_BUCKET = import.meta.env.VITE_SUPABASE_STORAGE_BUCKET
 
+// 上传请求头
 const uploadHeaders = ref({
   Authorization: `Bearer ${userStore.accessToken}`
 })
 
+// 计算统计
 const imageCount = computed(() => 
   tableData.value.filter(f => f.mime_type?.startsWith('image/')).length
 )
@@ -194,6 +194,7 @@ const otherCount = computed(() =>
   tableData.value.length - imageCount.value - documentCount.value
 )
 
+// 搜索过滤
 const filteredData = computed(() => {
   if (!searchKeyword.value) return tableData.value
   const keyword = searchKeyword.value.toLowerCase()
@@ -202,6 +203,7 @@ const filteredData = computed(() => {
   )
 })
 
+// ===== 工具函数 =====
 function getFileIcon(mimeType: string) {
   if (!mimeType) return Document
   if (mimeType.startsWith('image/')) return Picture
@@ -260,14 +262,12 @@ function formatTime(time: string) {
   return date.toLocaleDateString('zh-CN')
 }
 
-function getFileUrl(path: string) {
-  return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${path}`
-}
+// ===== API 调用 =====
 async function loadData() {
   loading.value = true
   try {
-    const res = await request.get('/api/file')
-    tableData.value = res.data || []
+    const res = await getFileList()
+    tableData.value = res?.data ?? []
   } catch (error) {
     ElMessage.error('加载文件列表失败')
   } finally {
@@ -275,6 +275,7 @@ async function loadData() {
   }
 }
 
+// ===== 上传相关 =====
 function triggerUpload() {
   const input = document.querySelector('.el-upload input[type="file"]') as HTMLInputElement
   if (input) input.click()
@@ -297,6 +298,7 @@ function handleError() {
   ElMessage.error('文件上传失败，请重试')
 }
 
+// ===== 文件操作 =====
 function previewFile(row: any) {
   previewFileData.value = row
   previewVisible.value = true
@@ -311,14 +313,15 @@ async function copyUrl(path: string) {
   }
 }
 
-async function deleteFile(path: string) {
+// 重命名为 handleDeleteFile 避免与 API 函数冲突
+async function handleDeleteFile(path: string) {
   try {
     await ElMessageBox.confirm('确定要删除这个文件吗？', '警告', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await request.post('/api/file/delete', { path })
+    await deleteFileApi({ path })
     ElMessage.success('文件已删除')
     loadData()
   } catch (error) {
