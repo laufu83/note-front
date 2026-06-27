@@ -249,8 +249,6 @@ onMounted(async () => {
 }
 
 .profile-card {
-  max-width: 640px;
-  margin: 0 auto;
   border-radius: 12px;
 }
 

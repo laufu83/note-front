@@ -183,7 +183,7 @@ async function handleDestroyAccount() {
 
 /* ===== 卡片 ===== */
 .setting-card {
-  max-width: 600px;
+ 
   margin-bottom: 24px;
   border-radius: 8px;
 }
@@ -217,7 +217,7 @@ async function handleDestroyAccount() {
 
 /* ===== 表单 ===== */
 .pwd-form {
-  max-width: 480px;
+  max-width: 700px;
 }
 
 :deep(.pwd-form .el-form-item) {
