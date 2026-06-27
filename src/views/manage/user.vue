@@ -88,7 +88,7 @@
           <span>{{ roleDialog.username }}</span>
         </el-form-item>
         <el-form-item label="当前角色">
-          <el-tag :type="roleDialog.currentRole === 'admin' ? 'danger' : ''">
+          <el-tag :type="roleDialog.currentRole === 'admin' ? 'danger' : 'info'">
             {{ roleDialog.currentRole === 'admin' ? '管理员' : '普通用户' }}
           </el-tag>
         </el-form-item>
@@ -237,6 +237,7 @@ const submitResetPwd = async () => {
     ElMessage.warning('密码至少6位')
     return
   }
+
   submitting.value = true
   try {
     await adminResetUserPwdApi({

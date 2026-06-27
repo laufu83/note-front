@@ -65,8 +65,7 @@ export const updateUserApi = (params: UpdateUserParams) => {
  * 重置用户密码（管理员）
  */
 export const adminResetUserPwdApi = (params: AdminResetPwdParams) => {
-  const { userId, ...data } = params
-  return request.post<Resp<null>>(`/api/user/admin-reset-pwd`, data)
+  return request.post<Resp<null>>(`/api/user/admin-reset-pwd`, params)
 }
 
 /**
