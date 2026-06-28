@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import {CODE} from '@/types/response'
 
 const { VITE_USE_PROXY, VITE_API_BASE_URL, VITE_API_PREFIX } = import.meta.env
 declare module 'axios' {
@@ -36,7 +37,7 @@ service.interceptors.request.use(config => {
 service.interceptors.response.use(
   res => {
     const data = res.data
-    if (data.code !== 0) {
+    if (data.code !== CODE.SUCCESS) {
       ElMessage.error(data.msg)
       return Promise.reject(data)
     }
