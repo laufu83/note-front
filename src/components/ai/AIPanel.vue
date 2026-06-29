@@ -1,12 +1,5 @@
 <template>
   <div class="ai-sidebar" :class="{ 'is-open': visible, 'dark-mode': isDarkMode }">
-    <!-- <div class="ai-sidebar-toggle" @click="togglePanel">
-      <el-icon :size="24">
-        <component :is="visible ? Close : MagicStick" />
-      </el-icon>
-      <span v-if="!visible" class="toggle-label">AI</span>
-    </div> -->
-
     <div class="ai-sidebar-content">
       <div class="ai-panel">
         <!-- ===== 头部 ===== -->
@@ -23,7 +16,7 @@
             </template>
             <div class="selected-preview">{{ selectedTextPreview }}</div>
           </el-alert>
-          <el-button size="small" type="text" @click="clearSelectedText">
+          <el-button size="small" type="text" class="btn-link-primary" @click="clearSelectedText">
             清除选中
           </el-button>
         </div>
@@ -62,16 +55,17 @@
             :rows="2"
             :placeholder="customPlaceholder"
             :disabled="processing"
+            class="textarea-common"
             @keydown.ctrl.enter="handleCustomAsk"
           />
           <div class="custom-actions">
-            <el-button type="primary" @click="handleCustomAsk" :loading="processing" size="small">
+            <el-button type="primary" @click="handleCustomAsk" :loading="processing" size="small" class="btn-primary">
               发送
             </el-button>
-            <el-tag v-if="hasContent" size="small" type="info">
+            <el-tag v-if="hasContent" size="small" type="info" class="tag-info">
               {{ wordCount }} 字
             </el-tag>
-            <el-tag v-if="displaySelectedText" size="small" type="warning">
+            <el-tag v-if="displaySelectedText" size="small" type="warning" class="tag-warning">
               选中 {{ displaySelectedText.length }} 字
             </el-tag>
           </div>
@@ -472,7 +466,7 @@ defineExpose({
 
 <style scoped>
 /* ============================================================
-   AI 侧边栏
+   AI 侧边栏 - 专用样式
    ============================================================ */
 
 .ai-sidebar {
@@ -486,39 +480,6 @@ defineExpose({
   pointer-events: none;
 }
 
-/* ===== 侧边栏切换按钮 ===== */
-.ai-sidebar-toggle {
-  pointer-events: auto;
-  width: 40px;
-  height: 40px;
-  margin-top: calc(50vh - 20px);
-  background: #409eff;
-  color: #fff;
-  border-radius: 8px 0 0 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 2;
-}
-
-.ai-sidebar-toggle:hover {
-  background: #66b1ff;
-  transform: scale(1.05);
-}
-
-.ai-sidebar-toggle .toggle-label {
-  font-size: 10px;
-  font-weight: 600;
-  margin-top: 2px;
-  letter-spacing: 1px;
-}
-
 /* ===== 侧边栏内容 ===== */
 .ai-sidebar-content {
   pointer-events: none;
@@ -526,9 +487,9 @@ defineExpose({
   height: 100vh;
   transform: translateX(100%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: #ffffff;
+  background: var(--card-bg);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08);
-  border-left: 1px solid #e4e7ed;
+  border-left: 1px solid var(--border-color);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -538,11 +499,6 @@ defineExpose({
   pointer-events: auto;
 }
 
-.ai-sidebar.is-open .ai-sidebar-toggle {
-  border-radius: 0;
-  background: #409eff;
-}
-
 /* ===== AI 面板内容 ===== */
 .ai-panel {
   height: 100%;
@@ -550,6 +506,8 @@ defineExpose({
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--card-bg);
+  transition: background var(--transition-duration);
 }
 
 /* ===== 头部 ===== */
@@ -564,7 +522,8 @@ defineExpose({
 .ai-title {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
 }
 
 /* ===== 选中内容提示 ===== */
@@ -575,23 +534,27 @@ defineExpose({
 
 .selected-info :deep(.el-alert) {
   padding: 6px 10px;
+  background: var(--theme-color-light) !important;
+  border-color: var(--theme-color-light) !important;
 }
 
 .selected-info :deep(.el-alert__title) {
   font-size: 12px;
+  color: var(--text-primary) !important;
 }
 
 .selected-preview {
   font-size: 12px;
-  color: #606266;
+  color: var(--text-regular);
   margin-top: 2px;
   padding: 4px 8px;
   background: rgba(64, 158, 255, 0.08);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   max-height: 40px;
   overflow-y: auto;
   word-break: break-all;
   line-height: 1.4;
+  transition: color var(--transition-duration), background var(--transition-duration);
 }
 
 /* ===== 上下文模式 ===== */
@@ -646,6 +609,18 @@ defineExpose({
   font-size: 12px;
   padding: 6px 10px;
   min-height: 50px;
+  background: var(--bg-white) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+  transition: all var(--transition-duration);
+}
+
+.ai-custom :deep(.el-textarea__inner:focus) {
+  border-color: var(--theme-color);
+}
+
+.ai-custom :deep(.el-textarea__inner::placeholder) {
+  color: var(--text-placeholder);
 }
 
 .custom-actions {
@@ -662,14 +637,15 @@ defineExpose({
 /* ===== AI 响应 ===== */
 .ai-response {
   flex: 1;
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   padding: 10px 12px;
-  background: #f8f9fa;
+  background: var(--bg-gray);
   display: flex;
   flex-direction: column;
   min-height: 120px;
   overflow: hidden;
+  transition: all var(--transition-duration);
 }
 
 .response-header {
@@ -683,7 +659,8 @@ defineExpose({
 .response-title {
   font-size: 12px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
 }
 
 .response-actions {
@@ -694,6 +671,11 @@ defineExpose({
 .response-actions .el-button {
   font-size: 14px;
   padding: 2px 6px;
+  color: var(--text-secondary) !important;
+}
+
+.response-actions .el-button:hover {
+  color: var(--theme-color) !important;
 }
 
 .response-content {
@@ -703,21 +685,26 @@ defineExpose({
   line-height: 1.6;
   font-size: 13px;
   padding-right: 4px;
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
 }
 
 .response-content :deep(pre) {
-  background: #f0f0f0;
+  background: var(--bg-dark);
   padding: 8px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: auto;
   font-size: 12px;
+  transition: background var(--transition-duration);
 }
 
 .response-content :deep(code) {
-  background: #f0f0f0;
+  background: var(--bg-dark);
   padding: 1px 4px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
+  color: var(--text-primary);
+  transition: background var(--transition-duration), color var(--transition-duration);
 }
 
 .response-content :deep(pre code) {
@@ -726,23 +713,26 @@ defineExpose({
 }
 
 .response-content :deep(blockquote) {
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--theme-color);
   padding-left: 10px;
   margin: 4px 0;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
+  transition: border-color var(--transition-duration), color var(--transition-duration);
 }
 
 .response-footer {
   flex-shrink: 0;
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid #e4e7ed;
+  border-top: 1px solid var(--border-color);
+  transition: border-color var(--transition-duration);
 }
 
 .usage-info {
   font-size: 11px;
-  color: #909399;
+  color: var(--text-secondary);
+  transition: color var(--transition-duration);
 }
 
 /* ===== 空状态 ===== */
@@ -759,66 +749,55 @@ defineExpose({
 
 .ai-empty :deep(.el-empty__description) {
   font-size: 12px;
+  color: var(--text-secondary) !important;
 }
 
 /* ============================================================
-   深色模式
+   深色模式额外适配
    ============================================================ */
-
 .ai-sidebar.dark-mode .ai-sidebar-content {
-  background: #1e1e1e;
-  border-color: #404040;
+  background: var(--card-bg);
+  border-color: var(--border-color);
 }
 
-.ai-sidebar.dark-mode .ai-title {
-  color: #e0e0e0;
-}
-
-.ai-sidebar.dark-mode .ai-response {
-  background: #2d2d2d;
-  border-color: #404040;
-}
-
-.ai-sidebar.dark-mode .response-title {
-  color: #e0e0e0;
-}
-
-.ai-sidebar.dark-mode .response-content :deep(pre) {
-  background: #1a1a1a;
-}
-
-.ai-sidebar.dark-mode .response-content :deep(code) {
-  background: #1a1a1a;
-  color: #d4d4d4;
-}
-
-.ai-sidebar.dark-mode .response-footer {
-  border-color: #404040;
+.ai-sidebar.dark-mode .ai-panel {
+  background: var(--card-bg);
 }
 
 .ai-sidebar.dark-mode .selected-preview {
   background: rgba(64, 158, 255, 0.15);
-  color: #d4d4d4;
+  color: var(--text-regular);
+}
+
+.ai-sidebar.dark-mode .ai-response {
+  background: var(--bg-gray);
+  border-color: var(--border-color);
+}
+
+.ai-sidebar.dark-mode .response-content :deep(pre) {
+  background: var(--bg-dark);
+}
+
+.ai-sidebar.dark-mode .response-content :deep(code) {
+  background: var(--bg-dark);
+  color: var(--text-regular);
+}
+
+.ai-sidebar.dark-mode .response-footer {
+  border-color: var(--border-color);
+}
+
+.ai-sidebar.dark-mode .ai-custom :deep(.el-textarea__inner) {
+  background: var(--bg-white) !important;
 }
 
 /* ============================================================
    响应式
    ============================================================ */
-
 @media (max-width: 768px) {
   .ai-sidebar-content {
     width: 100%;
     max-width: 340px;
-  }
-
-  .ai-sidebar-toggle {
-    width: 32px;
-    height: 32px;
-    margin-top: calc(50vh - 16px);
-  }
-
-  .ai-sidebar-toggle .toggle-label {
-    display: none;
   }
 
   .ai-panel {
@@ -843,10 +822,6 @@ defineExpose({
   .ai-sidebar-content {
     max-width: 100%;
     width: 100%;
-  }
-
-  .ai-sidebar-toggle {
-    display: none;
   }
 
   .ai-sidebar.is-open .ai-sidebar-content {

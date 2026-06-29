@@ -1,4 +1,4 @@
-<!-- src/views/Trash.vue - 回收站页面 -->
+<!-- src/views/Trash.vue - 回收站页面，适配亮暗主题 -->
 
 <template>
   <div class="trash-page">
@@ -192,103 +192,35 @@ onMounted(() => {
   loadData()
 })
 </script>
-
 <style scoped>
 .trash-page {
-  padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
+  @extend .list-page-container;
 }
 
-/* ===== 页面头部 ===== */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: #303133;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-}
-
+/* 特定样式：回收站图标颜色 */
 .page-title .el-icon {
   color: #F56C6C;
 }
 
-.count {
-  font-size: 14px;
-  color: #909399;
+/* 特定样式：标签颜色适配 */
+.dark-theme :deep(.el-tag--warning) {
+  background-color: rgba(230, 162, 60, 0.15) !important;
+  border-color: rgba(230, 162, 60, 0.3) !important;
+  color: #e6a23c !important;
 }
 
-.header-right {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+.dark-theme :deep(.el-tag--danger) {
+  background-color: rgba(245, 108, 108, 0.15) !important;
+  border-color: rgba(245, 108, 108, 0.3) !important;
+  color: #f56c6c !important;
 }
 
-/* ===== 列表卡片 ===== */
-.list-card {
-  border-radius: 8px;
+/* 特定样式：链接按钮 */
+:deep(.el-button--success.is-link) {
+  color: #67c23a !important;
 }
 
-:deep(.list-card .el-card__body) {
-  padding: 0;
-}
-
-.title-text {
-  color: #303133;
-  font-weight: 500;
-}
-
-/* ===== 空状态 ===== */
-.empty-state {
-  padding: 40px 0;
-}
-
-/* ===== 响应式 ===== */
-@media (max-width: 768px) {
-  .trash-page {
-    padding: 12px;
-  }
-
-  .page-title {
-    font-size: 18px;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .header-right {
-    width: 100%;
-  }
-
-  .header-right .el-button {
-    flex: 1;
-  }
-
-  :deep(.el-table) {
-    font-size: 13px;
-  }
-
-  :deep(.el-table .cell) {
-    padding: 8px 6px !important;
-  }
+:deep(.el-button--success.is-link:hover) {
+  color: #85ce61 !important;
 }
 </style>

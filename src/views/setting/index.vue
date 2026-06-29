@@ -1,7 +1,6 @@
-<!-- src/views/Setting.vue - 使用分离的 API -->
-
+<!-- src/views/Setting.vue - 精简版 -->
 <template>
-  <div class="setting-page">
+  <div class="setting-page page-container">
     <!-- 修改密码 -->
     <el-card class="setting-card" shadow="hover">
       <template #header>
@@ -21,30 +20,15 @@
         class="pwd-form"
       >
         <el-form-item label="原密码" prop="oldPwd">
-          <el-input
-            v-model="form.oldPwd"
-            placeholder="请输入原密码"
-            show-password
-            style="max-width: 360px"
-          />
+          <el-input v-model="form.oldPwd" placeholder="请输入原密码" show-password />
         </el-form-item>
 
         <el-form-item label="新密码" prop="newPwd">
-          <el-input
-            v-model="form.newPwd"
-            placeholder="请输入新密码（至少6位）"
-            show-password
-            style="max-width: 360px"
-          />
+          <el-input v-model="form.newPwd" placeholder="请输入新密码（至少6位）" show-password />
         </el-form-item>
 
         <el-form-item label="确认密码" prop="confirmPwd">
-          <el-input
-            v-model="form.confirmPwd"
-            placeholder="请再次输入新密码"
-            show-password
-            style="max-width: 360px"
-          />
+          <el-input v-model="form.confirmPwd" placeholder="请再次输入新密码" show-password />
         </el-form-item>
 
         <el-form-item>
@@ -120,23 +104,15 @@ const formRules: FormRules = {
   ]
 }
 
-// ===== 修改密码 =====
 async function handleChangePassword() {
   try {
     await formRef.value?.validate()
     pwdLoading.value = true
-
-    await changePassword({
-      oldPwd: form.oldPwd,
-      newPwd: form.newPwd
-    })
-
+    await changePassword({ oldPwd: form.oldPwd, newPwd: form.newPwd })
     ElMessage.success('密码修改成功，请重新登录')
-    // 清空表单
     form.oldPwd = ''
     form.newPwd = ''
     form.confirmPwd = ''
-    // 注销并跳转到登录页
     userStore.logout()
   } catch (error) {
     // 错误已由拦截器处理
@@ -145,7 +121,6 @@ async function handleChangePassword() {
   }
 }
 
-// ===== 注销账号 =====
 async function handleDestroyAccount() {
   try {
     await ElMessageBox.confirm(
@@ -158,11 +133,9 @@ async function handleDestroyAccount() {
         confirmButtonClass: 'el-button--danger'
       }
     )
-
     destroyLoading.value = true
     await destroyAccount()
     ElMessage.success('账号已注销，再见 👋')
-    // 注销并跳转到登录页
     userStore.logout()
   } catch (error) {
     if (error !== 'cancel') {
@@ -177,23 +150,18 @@ async function handleDestroyAccount() {
 <style scoped>
 .setting-page {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
 }
 
-/* ===== 卡片 ===== */
 .setting-card {
- 
   margin-bottom: 24px;
-  border-radius: 8px;
 }
 
-:deep(.setting-card .el-card__header) {
+.setting-card :deep(.el-card__header) {
   padding: 14px 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-color) !important;
 }
 
-:deep(.setting-card .el-card__body) {
+.setting-card :deep(.el-card__body) {
   padding: 20px 24px;
 }
 
@@ -208,25 +176,28 @@ async function handleDestroyAccount() {
   gap: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .card-title .el-icon {
-  color: #409EFF;
+  color: var(--theme-color);
 }
 
-/* ===== 表单 ===== */
 .pwd-form {
   max-width: 700px;
 }
 
-:deep(.pwd-form .el-form-item) {
+.pwd-form :deep(.el-form-item) {
   margin-bottom: 20px;
 }
 
-/* ===== 危险操作 ===== */
+.pwd-form :deep(.el-input) {
+  max-width: 360px;
+}
+
+/* 危险操作 */
 .danger-card {
-  border: 1px solid #fde2e2;
+  border-color: rgba(245, 108, 108, 0.3) !important;
 }
 
 .danger-title .el-icon {
@@ -245,7 +216,7 @@ async function handleDestroyAccount() {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  color: #606266;
+  color: var(--text-regular);
   font-size: 14px;
   flex: 1;
 }
@@ -257,35 +228,55 @@ async function handleDestroyAccount() {
   margin-top: 1px;
 }
 
-/* ===== 响应式 ===== */
 @media (max-width: 768px) {
   .setting-page {
     padding: 12px;
   }
-
-  .setting-card {
-    max-width: 100%;
-  }
-
-  :deep(.setting-card .el-card__body) {
+  .setting-card :deep(.el-card__body) {
     padding: 16px;
   }
-
   .pwd-form {
     max-width: 100%;
   }
-
-  :deep(.pwd-form .el-input) {
+  .pwd-form :deep(.el-input) {
     max-width: 100% !important;
   }
-
   .danger-content {
     flex-direction: column;
     align-items: flex-start;
   }
-
   .danger-content .el-button {
     width: 100%;
+  }
+  .danger-info {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .setting-page {
+    padding: 8px;
+  }
+  .setting-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+  .setting-card :deep(.el-card__header) {
+    padding: 10px 16px;
+  }
+  .card-title {
+    font-size: 14px;
+  }
+  .danger-info {
+    font-size: 12px;
+  }
+  .danger-icon {
+    font-size: 16px;
+  }
+  .pwd-form :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+  .pwd-form :deep(.el-form-item__label) {
+    font-size: 13px;
   }
 }
 </style>

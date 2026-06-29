@@ -1,12 +1,11 @@
-<!-- src/views/NoteHistory.vue - 修复 ElMessageBox 导入 -->
-
+<!-- src/views/NoteHistory.vue - 使用全局公共样式 -->
 <template>
-  <div class="note-history-page">
-    <el-card shadow="hover">
+  <div class="note-history-page page-container">
+    <el-card class="page-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <div class="header-left">
-            <el-button :icon="ArrowLeft" @click="router.push('/note/list')">返回</el-button>
+            <el-button :icon="ArrowLeft" @click="router.push('/note/list')" class="btn-default">返回</el-button>
             <span class="title">笔记历史版本</span>
           </div>
           <span class="version-info">版本 #{{ currentVersion }}</span>
@@ -31,8 +30,8 @@
 
       <template #footer>
         <div class="card-footer">
-          <el-button @click="router.push('/note/list')">取消</el-button>
-          <el-button type="primary" @click="handleRollback" :loading="rollbacking">
+          <el-button @click="router.push('/note/list')" class="btn-default">取消</el-button>
+          <el-button type="primary" @click="handleRollback" :loading="rollbacking" class="btn-primary">
             {{ rollbacking ? '回滚中...' : '回滚到此版本' }}
           </el-button>
         </div>
@@ -69,7 +68,6 @@ async function loadHistory() {
   loading.value = true
   try {
     const res = await getNoteHistoryList(noteId.value)
-    // 安全获取历史列表
     const historyList = Array.isArray(res?.data) ? res.data : []
     
     if (historyList.length === 0) {
@@ -78,16 +76,13 @@ async function loadHistory() {
       return
     }
 
-    // 查找指定版本
     let targetItem: NoteHistory | undefined
     if (historyId.value) {
       targetItem = historyList.find((item: NoteHistory) => item.id === historyId.value)
     }
     
-    // 如果没找到指定版本，使用最新版本
     if (!targetItem) {
       targetItem = historyList[0]
-      // 如果通过 query 参数指定了版本但没找到，提示用户
       if (historyId.value) {
         ElMessage.warning('未找到指定版本，显示最新版本')
       }
@@ -95,7 +90,6 @@ async function loadHistory() {
 
     if (targetItem) {
       currentVersion.value = targetItem.version || 0
-      // 使用 marked 解析 Markdown 为 HTML
       html.value = marked.parse(targetItem.content || '') as string
     } else {
       html.value = ''
@@ -148,12 +142,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ============================================================
+   NoteHistory 专用样式
+   ============================================================ */
+
 .note-history-page {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
 }
 
+/* ===== 卡片头部 ===== */
 .card-header {
   display: flex;
   align-items: center;
@@ -171,19 +168,23 @@ onMounted(() => {
 .title {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
 }
 
 .version-info {
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
+  transition: color var(--transition-duration);
 }
 
+/* ===== 内容区域 ===== */
 .history-content {
   min-height: 300px;
-  padding: 16px 0;
+  padding: 16px 20px;
 }
 
+/* ===== 加载状态 ===== */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -191,10 +192,12 @@ onMounted(() => {
   justify-content: center;
   min-height: 200px;
   gap: 12px;
-  color: #909399;
+  color: var(--text-secondary);
+  transition: color var(--transition-duration);
 }
 
 .loading-state .el-icon {
+  color: var(--theme-color);
   animation: rotating 1.5s linear infinite;
 }
 
@@ -203,17 +206,15 @@ onMounted(() => {
   to { transform: rotate(360deg); }
 }
 
-.empty-state {
-  padding: 40px 0;
-}
-
+/* ===== Markdown 内容 ===== */
 .markdown-body {
   font-size: 14px;
   line-height: 1.8;
-  color: #303133;
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
 }
 
-/* Markdown 样式 */
+/* Markdown 样式 - 使用 CSS 变量 */
 .markdown-body :deep(h1),
 .markdown-body :deep(h2),
 .markdown-body :deep(h3),
@@ -223,6 +224,8 @@ onMounted(() => {
   margin: 16px 0 8px;
   font-weight: 600;
   line-height: 1.4;
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
 }
 
 .markdown-body :deep(h1) { font-size: 24px; }
@@ -232,12 +235,16 @@ onMounted(() => {
 
 .markdown-body :deep(p) {
   margin: 8px 0;
+  color: var(--text-regular);
+  transition: color var(--transition-duration);
 }
 
 .markdown-body :deep(ul),
 .markdown-body :deep(ol) {
   padding-left: 24px;
   margin: 8px 0;
+  color: var(--text-regular);
+  transition: color var(--transition-duration);
 }
 
 .markdown-body :deep(li) {
@@ -247,35 +254,42 @@ onMounted(() => {
 .markdown-body :deep(blockquote) {
   margin: 8px 0;
   padding: 8px 16px;
-  border-left: 4px solid #409EFF;
-  background: #f5f7fa;
-  color: #606266;
+  border-left: 4px solid var(--theme-color);
+  background: var(--bg-gray);
+  color: var(--text-regular);
+  transition: background var(--transition-duration), 
+              border-color var(--transition-duration),
+              color var(--transition-duration);
 }
 
 .markdown-body :deep(code) {
   padding: 2px 6px;
-  background: #f5f7fa;
-  border-radius: 4px;
+  background: var(--bg-gray);
+  border-radius: var(--radius-sm);
   font-family: 'Courier New', monospace;
   font-size: 13px;
+  color: var(--text-primary);
+  transition: background var(--transition-duration), color var(--transition-duration);
 }
 
 .markdown-body :deep(pre) {
   padding: 12px 16px;
-  background: #f5f7fa;
-  border-radius: 6px;
+  background: var(--bg-dark);
+  border-radius: var(--radius-sm);
   overflow-x: auto;
   margin: 8px 0;
+  transition: background var(--transition-duration);
 }
 
 .markdown-body :deep(pre code) {
   background: transparent;
   padding: 0;
+  color: var(--text-regular);
 }
 
 .markdown-body :deep(img) {
   max-width: 100%;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .markdown-body :deep(table) {
@@ -286,25 +300,78 @@ onMounted(() => {
 
 .markdown-body :deep(th),
 .markdown-body :deep(td) {
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--border-color);
   padding: 8px 12px;
   text-align: left;
+  transition: border-color var(--transition-duration);
 }
 
 .markdown-body :deep(th) {
-  background: #f5f7fa;
+  background: var(--bg-gray);
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: background var(--transition-duration), color var(--transition-duration);
+}
+
+.markdown-body :deep(td) {
+  color: var(--text-regular);
+  transition: color var(--transition-duration);
+}
+
+.markdown-body :deep(hr) {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 16px 0;
+  transition: border-color var(--transition-duration);
+}
+
+.markdown-body :deep(a) {
+  color: var(--theme-color);
+  text-decoration: none;
+  transition: color var(--transition-duration);
+}
+
+.markdown-body :deep(a:hover) {
+  color: var(--theme-color-hover);
+  text-decoration: underline;
+}
+
+.markdown-body :deep(strong) {
+  color: var(--text-primary);
   font-weight: 600;
 }
 
+.markdown-body :deep(em) {
+  color: var(--text-regular);
+}
+
+/* ===== 卡片底部 ===== */
 .card-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #ebeef5;
 }
 
-/* ===== 响应式 ===== */
+/* ===== 暗色主题额外适配 ===== */
+.dark-theme .markdown-body :deep(blockquote) {
+  background: var(--bg-gray);
+}
+
+.dark-theme .markdown-body :deep(code) {
+  background: var(--bg-gray);
+}
+
+.dark-theme .markdown-body :deep(pre) {
+  background: var(--bg-dark);
+}
+
+.dark-theme .markdown-body :deep(th) {
+  background: var(--bg-gray);
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
 @media (max-width: 768px) {
   .note-history-page {
     padding: 12px;
@@ -319,12 +386,53 @@ onMounted(() => {
     flex-wrap: wrap;
   }
 
+  .history-content {
+    padding: 12px 16px;
+  }
+
   .card-footer {
     flex-direction: column;
   }
 
   .card-footer .el-button {
     width: 100%;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+
+  .version-info {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .note-history-page {
+    padding: 8px;
+  }
+
+  .history-content {
+    padding: 8px 12px;
+    min-height: 200px;
+  }
+
+  .markdown-body {
+    font-size: 13px;
+  }
+
+  .markdown-body :deep(h1) { font-size: 20px; }
+  .markdown-body :deep(h2) { font-size: 18px; }
+  .markdown-body :deep(h3) { font-size: 16px; }
+  .markdown-body :deep(h4) { font-size: 14px; }
+
+  .markdown-body :deep(pre) {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .loading-state {
+    min-height: 150px;
   }
 }
 </style>

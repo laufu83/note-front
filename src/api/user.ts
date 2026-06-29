@@ -50,8 +50,13 @@ export const getCurrentUserInfo = () => {
 /**
  * 获取用户列表（管理员）
  */
-export const getUserListApi = () => {
-  return request.get<Resp<UserListResponse>>('/api/user/list')
+export const getUserListApi = (params: { page: number; pageSize: number }) => {
+  return request.get<Resp<{
+      list: UserItem[]
+      total: number
+      page: number
+      pageSize: number
+    }>>(`/api/user/list?page=${params.page}&pageSize=${params.pageSize}`)
 }
 
 /**

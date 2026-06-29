@@ -223,9 +223,9 @@ export function getNoteHistory(id: number) {
  * 创建历史版本
  * POST /api/note/history
  */
-export const createNoteHistory = (data: CreateHistoryParams) => {
-  return request.post<Resp<CreateHistoryResponse>>('/api/note/history', data);
-};
+// export const createNoteHistory = (data: CreateHistoryParams) => {
+//   return request.post<Resp<CreateHistoryResponse>>('/api/note/history', data);
+// };
 
 /**
  * 回滚到指定版本
@@ -290,8 +290,6 @@ export default {
   
   // 历史版本
   getNoteHistoryList,
-  getNoteHistory,
-  createNoteHistory,
   rollbackNote,
   getHistoryDetail,
   deleteHistory,

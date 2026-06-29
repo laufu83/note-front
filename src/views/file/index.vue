@@ -1,5 +1,5 @@
 <template>
-  <div class="file-manage">
+  <div class="file-manage page-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
@@ -8,7 +8,7 @@
             <el-icon><Folder /></el-icon>
             文件管理
           </h2>
-          <span class="file-count">共 {{ tableData.length }} 个文件</span>
+          <span class="page-count">共 {{ tableData.length }} 个文件</span>
         </div>
         <div class="header-right">
           <el-button type="primary" :icon="Upload" @click="triggerUpload">
@@ -19,7 +19,7 @@
     </div>
 
     <!-- 上传区域 -->
-    <el-card class="upload-card" shadow="hover">
+    <el-card class="upload-card page-card" shadow="hover">
       <el-upload
         ref="uploadRef"
         :action="uploadActionUrl"
@@ -40,7 +40,7 @@
     </el-card>
 
     <!-- 文件列表 -->
-    <el-card class="file-list-card" shadow="hover">
+    <el-card class="file-list-card page-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -54,7 +54,7 @@
               size="small"
               prefix-icon="Search"
               clearable
-              class="search-input"
+              class="search-input input-common"
             />
             <el-button size="small" :icon="Refresh" @click="loadData" />
           </div>
@@ -62,7 +62,7 @@
       </template>
 
       <!-- 文件统计 -->
-      <div class="file-stats" v-if="tableData.length > 0">
+      <div class="stats-bar" v-if="tableData.length > 0">
         <span class="stat-item">总文件：<b>{{ tableData.length }}</b></span>
         <span class="stat-item">图片：<b>{{ imageCount }}</b></span>
         <span class="stat-item">文档：<b>{{ documentCount }}</b></span>
@@ -76,6 +76,7 @@
         style="width: 100%"
         v-loading="loading"
         element-loading-text="加载中..."
+        class="page-table"
       >
         <el-table-column label="文件名" min-width="200" prop="file_name">
           <template #default="{ row }">
@@ -90,7 +91,7 @@
 
         <el-table-column label="类型" width="120" prop="mime_type" align="center">
           <template #default="{ row }">
-            <el-tag size="small" type="primary" plain>
+            <el-tag size="small" type="primary" plain class="tag-primary">
               {{ getFileTypeLabel(row.mime_type) }}
             </el-tag>
           </template>
@@ -110,9 +111,9 @@
 
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click="previewFile(row)">预览</el-button>
-            <el-button size="small" type="success" link @click="copyUrl(row.storage_path)">复制链接</el-button>
-            <el-button size="small" type="danger" link @click="handleDeleteFile(row.storage_path)">删除</el-button>
+            <el-button size="small" type="primary" link class="btn-link-primary" @click="previewFile(row)">预览</el-button>
+            <el-button size="small" type="success" link class="btn-link-success" @click="copyUrl(row.storage_path)">复制链接</el-button>
+            <el-button size="small" type="danger" link class="btn-link-danger" @click="handleDeleteFile(row.storage_path)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -126,7 +127,7 @@
     </el-card>
 
     <!-- 预览对话框 -->
-    <el-dialog v-model="previewVisible" title="文件预览" width="60%" destroy-on-close>
+    <el-dialog v-model="previewVisible" title="文件预览" width="60%" destroy-on-close class="dialog-common">
       <div class="preview-content" v-if="previewFileData">
         <img 
           v-if="isImage(previewFileData.mime_type)" 
@@ -163,6 +164,7 @@ import { useUserStore } from '@/stores/user'
 import { getFileList, deleteFile as deleteFileApi, getFileUrl } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { formatCNTime } from '@/utils/format'
+
 const userStore = useUserStore()
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -214,12 +216,12 @@ function getFileIcon(mimeType: string) {
 }
 
 function getFileIconColor(mimeType: string) {
-  if (!mimeType) return '#909399'
+  if (!mimeType) return 'var(--text-secondary)'
   if (mimeType.startsWith('image/')) return '#409EFF'
   if (mimeType.includes('video/')) return '#E6A23C'
   if (mimeType.includes('audio/')) return '#67C23A'
   if (mimeType.includes('pdf')) return '#F56C6C'
-  return '#909399'
+  return 'var(--text-secondary)'
 }
 
 function getFileTypeLabel(mimeType: string) {
@@ -249,8 +251,6 @@ function formatFileSize(bytes: number) {
   }
   return `${size.toFixed(1)} ${units[unitIndex]}`
 }
-
-
 
 // ===== API 调用 =====
 async function loadData() {
@@ -303,7 +303,6 @@ async function copyUrl(path: string) {
   }
 }
 
-// 重命名为 handleDeleteFile 避免与 API 函数冲突
 async function handleDeleteFile(path: string) {
   try {
     await ElMessageBox.confirm('确定要删除这个文件吗？', '警告', {
@@ -325,10 +324,12 @@ onMounted(loadData)
 </script>
 
 <style scoped>
+/* ============================================================
+   FileManage 专用样式
+   ============================================================ */
+
 .file-manage {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
 }
 
 /* ===== 页面头部 ===== */
@@ -350,32 +351,12 @@ onMounted(loadData)
   gap: 16px;
 }
 
-.page-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: #303133;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-}
-
-.page-title .el-icon {
-  color: #409EFF;
-}
-
-.file-count {
-  font-size: 14px;
-  color: #909399;
-}
-
 /* ===== 上传卡片 ===== */
 .upload-card {
   margin-bottom: 20px;
-  border-radius: 8px;
 }
 
-:deep(.upload-card .el-card__body) {
+.upload-card :deep(.el-card__body) {
   padding: 0;
 }
 
@@ -383,30 +364,33 @@ onMounted(loadData)
   width: 100%;
 }
 
-:deep(.upload-dragger .el-upload) {
+.upload-dragger :deep(.el-upload) {
   width: 100%;
 }
 
-:deep(.upload-dragger .el-upload-dragger) {
+.upload-dragger :deep(.el-upload-dragger) {
   width: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 40px 20px;
-  border: 2px dashed #dcdfe6;
+  border: 2px dashed var(--border-color);
+  background: var(--card-bg);
+  transition: all var(--transition-duration) var(--transition-timing);
 }
 
-:deep(.upload-dragger .el-upload-dragger:hover) {
-  border-color: #409EFF;
+.upload-dragger :deep(.el-upload-dragger:hover) {
+  border-color: var(--theme-color);
 }
 
-:deep(.upload-dragger .el-upload-dragger.is-dragover) {
-  border-color: #409EFF;
-  background: rgba(64, 158, 255, 0.05);
+.upload-dragger :deep(.el-upload-dragger.is-dragover) {
+  border-color: var(--theme-color);
+  background: var(--theme-color-light);
 }
 
 .upload-icon {
   font-size: 48px;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   margin-bottom: 8px;
+  transition: color var(--transition-duration);
 }
 
 .upload-text {
@@ -415,26 +399,25 @@ onMounted(loadData)
 
 .main-text {
   font-size: 16px;
-  color: #606266;
+  color: var(--text-regular);
+  transition: color var(--transition-duration);
 }
 
 .sub-text {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
   margin-top: 4px;
+  transition: color var(--transition-duration);
 }
 
 /* ===== 文件列表卡片 ===== */
-.file-list-card {
-  border-radius: 8px;
-}
-
-:deep(.file-list-card .el-card__header) {
+.file-list-card :deep(.el-card__header) {
   padding: 14px 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-color) !important;
+  transition: border-color var(--transition-duration);
 }
 
-:deep(.file-list-card .el-card__body) {
+.file-list-card :deep(.el-card__body) {
   padding: 0;
 }
 
@@ -452,11 +435,12 @@ onMounted(loadData)
   gap: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
 }
 
 .card-title .el-icon {
-  color: #409EFF;
+  color: var(--theme-color);
 }
 
 .card-actions {
@@ -469,23 +453,14 @@ onMounted(loadData)
   width: 200px;
 }
 
-/* ===== 文件统计 ===== */
-.file-stats {
-  padding: 12px 20px;
-  border-bottom: 1px solid #ebeef5;
-  display: flex;
+/* ===== 统计栏（使用全局 stats-bar，覆盖部分样式） ===== */
+.stats-bar {
   gap: 24px;
-  flex-wrap: wrap;
-  background: #fafafa;
 }
 
-.stat-item {
-  font-size: 14px;
-  color: #606266;
-}
-
-.stat-item b {
-  color: #303133;
+.stats-bar .stat-item b {
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
 }
 
 /* ===== 文件列表 ===== */
@@ -495,16 +470,16 @@ onMounted(loadData)
   gap: 8px;
 }
 
+.file-name-cell span {
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
+}
+
 .file-icon {
   font-size: 20px;
 }
 
-/* ===== 空状态 ===== */
-.empty-state {
-  padding: 40px 0;
-}
-
-/* ===== 预览 ===== */
+/* ===== 预览对话框 ===== */
 .preview-content {
   display: flex;
   flex-direction: column;
@@ -516,27 +491,36 @@ onMounted(loadData)
 .preview-image {
   max-width: 100%;
   max-height: 60vh;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .preview-info {
   text-align: center;
   line-height: 2;
-  color: #606266;
+  color: var(--text-regular);
+  transition: color var(--transition-duration);
 }
 
 .preview-info .el-icon {
-  color: #409EFF;
+  color: var(--theme-color);
 }
 
-/* ===== 响应式 ===== */
+.preview-info p {
+  color: var(--text-regular);
+  transition: color var(--transition-duration);
+}
+
+.preview-info strong {
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
 @media (max-width: 768px) {
   .file-manage {
     padding: 12px;
-  }
-
-  .page-title {
-    font-size: 18px;
   }
 
   .header-content {
@@ -561,8 +545,57 @@ onMounted(loadData)
     width: 100%;
   }
 
-  .file-stats {
+  .stats-bar {
     gap: 12px;
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+
+  .upload-dragger :deep(.el-upload-dragger) {
+    padding: 30px 16px;
+  }
+
+  .upload-icon {
+    font-size: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .file-manage {
+    padding: 8px;
+  }
+
+  .stats-bar {
+    font-size: 12px;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .file-icon {
+    font-size: 16px;
+  }
+
+  .upload-dragger :deep(.el-upload-dragger) {
+    padding: 20px 12px;
+  }
+
+  .upload-icon {
+    font-size: 32px;
+  }
+
+  .main-text {
+    font-size: 14px;
+  }
+
+  .sub-text {
+    font-size: 12px;
+  }
+
+  .preview-content {
+    padding: 8px 0;
+  }
+
+  .preview-info {
     font-size: 13px;
   }
 }

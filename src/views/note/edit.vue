@@ -1,17 +1,17 @@
 <template>
-  <div class="note-edit" :class="{ 'dark-mode': isDarkMode }">
+  <div class="note-edit page-container" :class="{ 'dark-mode': isDarkMode }">
     <!-- ===== 页面头部 ===== -->
     <div class="page-header">
       <div class="header-left">
         <el-button :icon="ArrowLeft" @click="router.push('/note/list')">返回</el-button>
         <h2 class="page-title">{{ isEdit ? '编辑笔记' : '新建笔记' }}</h2>
-        <el-tag v-if="isSaving" type="warning" size="small">保存中...</el-tag>
-        <el-tag v-else-if="isSaved" type="success" size="small">已保存</el-tag>
+        <el-tag v-if="isSaving" type="warning" size="small" class="tag-warning">保存中...</el-tag>
+        <el-tag v-else-if="isSaved" type="success" size="small" class="tag-success">已保存</el-tag>
         <span class="word-count">{{ wordCount }} 字 · {{ readTime }} 分钟阅读</span>
       </div>
       <div class="header-right">
         <el-button-group>
-          <!-- ✅ AI 按钮（在模板按钮前面） -->
+          <!-- AI 助手按钮 -->
           <el-button 
             :icon="MagicStick" 
             @click="showAIPanel = !showAIPanel"
@@ -27,9 +27,7 @@
           </el-button>
           <el-button @click="showTemplates = true" :icon="Files">模板</el-button>
           <el-button @click="showHistory = true" :icon="Clock">历史</el-button>
-          <el-button @click="toggleDarkMode" :icon="isDarkMode ? Sunny : Moon">
-            {{ isDarkMode ? '亮色' : '暗色' }}
-          </el-button>
+          <!-- 导出的下拉菜单 -->
           <el-dropdown @command="handleExport">
             <el-button :icon="Download">
               导出 <el-icon><ArrowDown /></el-icon>
@@ -44,14 +42,14 @@
             </template>
           </el-dropdown>
         </el-button-group>
-        <el-button @click="handleSave" type="primary" size="large" :loading="saving">
+        <el-button @click="handleSave" type="primary" size="large" :loading="saving" class="btn-primary">
           {{ saving ? '保存中...' : '保存笔记' }}
         </el-button>
       </div>
     </div>
 
     <!-- ===== 笔记表单 ===== -->
-    <el-card class="form-card" shadow="hover">
+    <el-card class="form-card page-card" shadow="hover">
       <el-form :model="form" label-width="80px">
         <el-form-item label="标题" required>
           <el-input
@@ -60,6 +58,7 @@
             size="large"
             maxlength="100"
             show-word-limit
+            class="input-common"
           />
         </el-form-item>
 
@@ -78,6 +77,7 @@
             placeholder="选择分类"
             style="width: 100%"
             clearable
+            class="select-common"
           >
             <el-option
               v-for="item in categoryList"
@@ -98,6 +98,7 @@
             allow-create
             filterable
             default-first-option
+            class="select-common"
           >
             <el-option
               v-for="item in tagList"
@@ -111,7 +112,7 @@
     </el-card>
 
     <!-- ===== 编辑器 ===== -->
-    <el-card class="editor-card" shadow="hover">
+    <el-card class="editor-card page-card" shadow="hover">
       <div id="vditor"></div>
     </el-card>
 
@@ -167,8 +168,6 @@ import {
   Clock,
   Download,
   ArrowDown,
-  Sunny,
-  Moon,
   MagicStick,
   Document,
   Edit,
@@ -725,10 +724,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* ============================================================
+   NoteEdit 专用样式
+   ============================================================ */
+
 .note-edit {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
 }
 
 /* ===== 页面头部 ===== */
@@ -751,14 +752,16 @@ onBeforeUnmount(() => {
 .page-title {
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0;
+  transition: color var(--transition-duration);
 }
 
 .word-count {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
   white-space: nowrap;
+  transition: color var(--transition-duration);
 }
 
 .header-right {
@@ -777,65 +780,138 @@ onBeforeUnmount(() => {
 /* ===== 卡片 ===== */
 .form-card {
   margin-bottom: 20px;
-  border-radius: 8px;
 }
 
-:deep(.form-card .el-card__body) {
+.form-card :deep(.el-card__body) {
   padding: 20px 24px;
 }
 
-.editor-card {
-  border-radius: 8px;
-}
-
-:deep(.editor-card .el-card__body) {
+.editor-card :deep(.el-card__body) {
   padding: 0;
 }
 
 /* ===== 编辑器 ===== */
 #vditor {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 :deep(.vditor) {
   border: none !important;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
+  background: var(--card-bg) !important;
+  transition: background var(--transition-duration);
 }
 
 :deep(.vditor .vditor-toolbar) {
-  border-bottom: 1px solid #ebeef5;
-  background: #fafafa;
+  border-bottom: 1px solid var(--border-color) !important;
+  background: var(--bg-gray) !important;
   padding: 8px 12px;
+  transition: background var(--transition-duration), border-color var(--transition-duration);
+}
+
+:deep(.vditor .vditor-toolbar .vditor-toolbar__item) {
+  color: var(--text-regular) !important;
+}
+
+:deep(.vditor .vditor-toolbar .vditor-toolbar__item:hover) {
+  color: var(--theme-color) !important;
 }
 
 :deep(.vditor .vditor-reset) {
   min-height: 400px;
+  color: var(--text-primary) !important;
+  background: var(--card-bg) !important;
+  transition: color var(--transition-duration), background var(--transition-duration);
+}
+
+:deep(.vditor .vditor-reset h1),
+:deep(.vditor .vditor-reset h2),
+:deep(.vditor .vditor-reset h3),
+:deep(.vditor .vditor-reset h4),
+:deep(.vditor .vditor-reset h5),
+:deep(.vditor .vditor-reset h6) {
+  color: var(--text-primary) !important;
+}
+
+:deep(.vditor .vditor-reset p),
+:deep(.vditor .vditor-reset li),
+:deep(.vditor .vditor-reset blockquote) {
+  color: var(--text-regular) !important;
+}
+
+:deep(.vditor .vditor-reset code) {
+  background: var(--bg-gray) !important;
+  color: var(--text-primary) !important;
+}
+
+:deep(.vditor .vditor-reset pre) {
+  background: var(--bg-dark) !important;
+}
+
+:deep(.vditor .vditor-reset pre code) {
+  color: var(--text-regular) !important;
+}
+
+:deep(.vditor .vditor-reset blockquote) {
+  border-left-color: var(--theme-color) !important;
+  background: var(--bg-gray) !important;
+}
+
+:deep(.vditor .vditor-reset table) {
+  border-color: var(--border-color) !important;
+}
+
+:deep(.vditor .vditor-reset table th),
+:deep(.vditor .vditor-reset table td) {
+  border-color: var(--border-color) !important;
+}
+
+:deep(.vditor .vditor-reset table th) {
+  background: var(--bg-gray) !important;
+}
+
+:deep(.vditor .vditor-outline) {
+  background: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+:deep(.vditor .vditor-outline li) {
+  color: var(--text-regular) !important;
+}
+
+:deep(.vditor .vditor-outline li:hover) {
+  color: var(--theme-color) !important;
+  background: var(--btn-hover-bg) !important;
 }
 
 /* ===== 选中文本悬浮工具栏 ===== */
 .selection-toolbar {
   position: absolute;
   z-index: 1000;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
   padding: 4px;
   display: none;
   align-items: center;
   gap: 2px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-color);
   animation: fadeIn 0.2s ease;
+  transition: background var(--transition-duration), border-color var(--transition-duration);
 }
 
 .selection-toolbar .el-button {
   border: none;
   font-size: 12px;
   padding: 6px 12px;
+  color: var(--text-regular);
+  transition: color var(--transition-duration), background var(--transition-duration);
 }
 
 .selection-toolbar .el-button:hover {
-  background: #f0f2f5;
+  background: var(--btn-hover-bg);
+  color: var(--theme-color);
 }
 
 .selection-toolbar .el-button .el-icon {
@@ -866,34 +942,60 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-/* ===== 深色模式 ===== */
-.dark-mode :deep(.vditor) {
-  background: #1e1e1e;
+/* ===== 暗色主题下 Vditor 额外适配 ===== */
+.dark-theme :deep(.vditor) {
+  background: var(--card-bg) !important;
 }
 
-.dark-mode :deep(.vditor .vditor-reset) {
-  color: #d4d4d4;
+.dark-theme :deep(.vditor .vditor-reset) {
+  color: var(--text-primary) !important;
+  background: var(--card-bg) !important;
 }
 
-.dark-mode :deep(.vditor .vditor-toolbar) {
-  background: #2d2d2d;
-  border-color: #404040;
+.dark-theme :deep(.vditor .vditor-toolbar) {
+  background: var(--bg-gray) !important;
+  border-color: var(--border-color) !important;
 }
 
-.dark-mode .page-title {
-  color: #e0e0e0;
+.dark-theme :deep(.vditor .vditor-toolbar .vditor-toolbar__item) {
+  color: var(--text-secondary) !important;
 }
 
-.dark-mode .selection-toolbar {
-  background: #2d2d2d;
-  border-color: #404040;
+.dark-theme :deep(.vditor .vditor-toolbar .vditor-toolbar__item:hover) {
+  color: var(--theme-color) !important;
 }
 
-.dark-mode .selection-toolbar .el-button:hover {
-  background: #3d3d3d;
+.dark-theme :deep(.vditor .vditor-outline) {
+  background: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
 }
 
-/* ===== 响应式 ===== */
+.dark-theme :deep(.vditor .vditor-outline li) {
+  color: var(--text-secondary) !important;
+}
+
+.dark-theme :deep(.vditor .vditor-outline li:hover) {
+  color: var(--theme-color) !important;
+  background: var(--btn-hover-bg) !important;
+}
+
+.dark-theme .selection-toolbar {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+.dark-theme .selection-toolbar .el-button {
+  color: var(--text-regular);
+}
+
+.dark-theme .selection-toolbar .el-button:hover {
+  background: var(--btn-hover-bg);
+  color: var(--theme-color);
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
 @media (max-width: 768px) {
   .note-edit {
     padding: 12px;
@@ -916,6 +1018,17 @@ onBeforeUnmount(() => {
     width: 100%;
   }
 
+  .header-right .el-button-group {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .header-right .el-button-group .el-button {
+    flex: 1;
+    min-width: 60px;
+  }
+
   .selection-toolbar {
     padding: 2px;
   }
@@ -929,7 +1042,7 @@ onBeforeUnmount(() => {
     margin-right: 0;
   }
 
-  :deep(.form-card .el-card__body) {
+  .form-card :deep(.el-card__body) {
     padding: 16px;
   }
 
@@ -944,6 +1057,30 @@ onBeforeUnmount(() => {
   .word-count {
     font-size: 12px;
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .note-edit {
+    padding: 8px;
+  }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  .form-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+
+  :deep(.read-mode .vditor-reset) {
+    padding: 20px;
+    font-size: 15px;
+  }
+
+  .selection-toolbar .el-button {
+    font-size: 10px;
+    padding: 3px 6px;
   }
 }
 </style>

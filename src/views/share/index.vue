@@ -1,5 +1,4 @@
-<!-- src/views/ShareView.vue - 修复类型问题 -->
-
+<!-- src/views/ShareView.vue - 宽度调大 -->
 <template>
   <div class="share-wrap">
     <!-- 密码验证 -->
@@ -22,13 +21,7 @@
             <el-icon><Lock /></el-icon>
           </template>
         </el-input>
-        <el-button
-          type="primary"
-          size="large"
-          @click="handleVerify"
-          :loading="loading"
-          block
-        >
+        <el-button type="primary" size="large" @click="handleVerify" :loading="loading" block>
           {{ loading ? '验证中...' : '验证密码' }}
         </el-button>
       </el-form>
@@ -85,8 +78,8 @@ import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 import { Document, Lock, Clock, View, Warning } from '@element-plus/icons-vue'
 import { formatTime } from '@/utils/format'
-const route = useRoute()
 
+const route = useRoute()
 const shareCode = route.params.code as string
 const urlPwd = route.query.pwd as string
 
@@ -97,26 +90,22 @@ const pwd = ref(urlPwd || '')
 const detail = ref<ShareDetail | null>(null)
 const html = ref('')
 
-// ===== 验证密码/获取分享内容 =====
 async function handleVerify() {
   loading.value = true
   errorMsg.value = ''
   
   try {
     const res = await getShareDetail(shareCode, pwd.value || undefined)
-    // 安全获取数据
     const data = res?.data
     if (!data) {
       errorMsg.value = '分享数据为空'
       return
     }
-    
     detail.value = data
     html.value = marked.parse(data.content || '') as string
     needPwd.value = false
     if (!urlPwd) ElMessage.success('验证成功')
   } catch (err: any) {
-    // 检查是否需要密码（401 未授权）
     if (err.code === CODE.UNAUTH) {
       needPwd.value = true
       if (err.msg?.includes('密码错误')) {
@@ -133,13 +122,7 @@ async function handleVerify() {
   }
 }
 
-// ===== 初始化 =====
-async function init() {
-  await handleVerify()
-}
-
-
-onMounted(init)
+onMounted(handleVerify)
 </script>
 
 <style scoped>
@@ -149,232 +132,240 @@ onMounted(init)
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  background: linear-gradient(145deg, #f0f2f5, #e4e7ed);
+  background: var(--main-bg);
 }
 
-/* ===== 卡片 ===== */
 .share-card {
-  max-width: 820px;
+  max-width: 1000px;  /* 从 820px 调整到 1000px */
   width: 100%;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-lg);
+  background: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
 }
 
-:deep(.share-card .el-card__body) {
-  padding: 40px 48px;
+.share-card :deep(.el-card__body) {
+  padding: 48px 56px;  /* 内边距调大 */
 }
 
-/* ===== 密码验证页 ===== */
+/* 密码验证 */
 .share-logo {
   text-align: center;
   margin-bottom: 28px;
 }
-
 .share-logo .el-icon {
-  color: #409EFF;
+  color: var(--theme-color);
   margin-bottom: 12px;
 }
-
 .share-logo h2 {
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
-
 .share-logo .subtitle {
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
   margin: 0;
 }
-
 .pwd-form {
-  max-width: 400px;
+  max-width: 420px;  /* 从 400px 调整到 420px */
   margin: 0 auto;
 }
-
-.pwd-form .el-input {
-  width: 100%;
-}
-
 .pwd-form .el-button {
   margin-top: 16px;
   width: 100%;
 }
-
 .footer-tip {
   text-align: center;
   margin-top: 20px;
   font-size: 13px;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
 }
 
-/* ===== 笔记内容页 ===== */
-.note-header {
-  margin-bottom: 4px;
-}
-
+/* 笔记内容 */
 .note-title {
-  font-size: 26px;
+  font-size: 28px;  /* 从 26px 调整到 28px */
   font-weight: 700;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 12px 0;
-  word-break: break-word;
 }
-
 .note-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
 }
-
 .meta-item {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
 }
-
 .meta-item .el-icon {
   font-size: 16px;
 }
 
-/* ===== 笔记内容 ===== */
+/* Markdown 内容 */
 .note-content {
-  font-size: 15px;
-  line-height: 1.8;
-  color: #303133;
+  font-size: 16px;  /* 从 15px 调整到 16px */
+  line-height: 1.9;  /* 从 1.8 调整到 1.9 */
+  color: var(--text-primary);
   min-height: 100px;
 }
-
 .note-content :deep(h1),
 .note-content :deep(h2),
 .note-content :deep(h3) {
-  margin-top: 24px;
-  margin-bottom: 12px;
+  color: var(--text-primary);
+  margin: 24px 0 12px;
 }
-
 .note-content :deep(p) {
+  color: var(--text-regular);
   margin: 12px 0;
 }
-
 .note-content :deep(img) {
   max-width: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
-
 .note-content :deep(pre) {
-  background: #f5f7fa;
-  padding: 16px;
-  border-radius: 8px;
+  background: var(--bg-gray);
+  padding: 16px 20px;  /* 内边距调大 */
+  border-radius: var(--radius-sm);
   overflow-x: auto;
 }
-
 .note-content :deep(code) {
-  background: #f5f7fa;
+  background: var(--bg-gray);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
+  color: var(--text-primary);
 }
-
+.note-content :deep(pre code) {
+  background: transparent;
+  padding: 0;
+  color: var(--text-regular);
+}
 .note-content :deep(blockquote) {
-  border-left: 4px solid #409EFF;
-  padding: 8px 16px;
+  border-left: 4px solid var(--theme-color);
+  padding: 12px 20px;  /* 内边距调大 */
   margin: 12px 0;
-  background: #f5f7fa;
-  border-radius: 0 4px 4px 0;
+  background: var(--bg-gray);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-regular);
 }
-
-.note-content :deep(ul),
-.note-content :deep(ol) {
-  padding-left: 24px;
-}
-
 .note-content :deep(table) {
   border-collapse: collapse;
   width: 100%;
   margin: 12px 0;
 }
-
 .note-content :deep(th),
 .note-content :deep(td) {
-  border: 1px solid #dcdfe6;
-  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  padding: 10px 14px;  /* 内边距调大 */
+  color: var(--text-regular);
 }
-
 .note-content :deep(th) {
-  background: #f5f7fa;
+  background: var(--bg-gray);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.note-content :deep(a) {
+  color: var(--theme-color);
+  text-decoration: none;
+}
+.note-content :deep(a:hover) {
+  color: var(--theme-color-hover);
+  text-decoration: underline;
 }
 
 .note-footer {
   margin-top: 32px;
   padding-top: 16px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--border-color);
   text-align: center;
   font-size: 13px;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
 }
-
 .footer-brand {
   display: block;
   margin-top: 4px;
   font-size: 12px;
-  color: #d0d4dd;
+  color: var(--text-placeholder);
 }
 
-/* ===== 错误状态 ===== */
+/* 错误状态 */
 .error-card {
   max-width: 480px;
 }
-
 .error-content {
   text-align: center;
   padding: 20px 0;
 }
-
 .error-content .el-icon {
   color: #f56c6c;
   margin-bottom: 16px;
 }
-
 .error-content h2 {
   font-size: 22px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
-
 .error-content .subtitle {
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
   margin: 0 0 20px 0;
 }
 
-/* ===== 响应式 ===== */
+/* 暗色主题额外适配 */
+.dark-theme .note-content :deep(pre),
+.dark-theme .note-content :deep(code),
+.dark-theme .note-content :deep(blockquote),
+.dark-theme .note-content :deep(th) {
+  background: var(--bg-dark);
+}
+
 @media (max-width: 768px) {
   .share-wrap {
     padding: 20px 12px;
   }
-
-  :deep(.share-card .el-card__body) {
+  .share-card :deep(.el-card__body) {
     padding: 24px 20px;
   }
-
-  .note-title {
-    font-size: 20px;
+  .share-card {
+    max-width: 100%;
   }
-
+  .note-title {
+    font-size: 22px;
+  }
   .share-logo h2 {
     font-size: 20px;
   }
+  .note-content {
+    font-size: 15px;
+  }
+  .pwd-form {
+    max-width: 100%;
+  }
+}
 
+@media (max-width: 480px) {
+  .share-wrap {
+    padding: 12px 8px;
+  }
+  .share-card :deep(.el-card__body) {
+    padding: 16px 12px;
+  }
+  .note-title {
+    font-size: 18px;
+  }
   .note-content {
     font-size: 14px;
   }
-
-  .pwd-form {
-    max-width: 100%;
+  .share-logo .el-icon {
+    font-size: 36px !important;
+  }
+  .error-content h2 {
+    font-size: 18px;
   }
 }
 </style>

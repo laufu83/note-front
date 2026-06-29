@@ -1,5 +1,5 @@
 <template>
-  <el-container class="app-container">
+  <el-container class="app-container" :class="themeClass">
     <!-- ===== 侧边栏（移动端为抽屉） ===== -->
     <el-aside
       class="app-aside"
@@ -16,7 +16,6 @@
       ></div>
 
       <div class="logo-wrapper">
-        <!-- 移动端展开或桌面端非折叠时显示完整文字 -->
         <span class="logo-text" v-show="!isMobile ? !collapsed : mobileMenuVisible">📒 智慧笔记</span>
         <span class="logo-text" v-show="!isMobile ? collapsed : !mobileMenuVisible">📒</span>
       </div>
@@ -25,8 +24,8 @@
         :collapse="isMobile ? !mobileMenuVisible : collapsed"
         router
         default-active="$route.path"
-        background-color="#304156"
-        text-color="#bfcbd9"
+        background-color="var(--menu-bg)"
+        text-color="var(--menu-text)"
         active-text-color="#409EFF"
         class="app-menu"
         @select="handleMenuSelect"
@@ -126,10 +125,17 @@
             <el-icon><component :is="collapsed ? 'Expand' : 'Fold'" /></el-icon>
           </el-button>
 
-          <span class="page-title">{{ currentPageTitle }}</span>
+          <span class="header-page-title">{{ currentPageTitle }}</span>
         </div>
 
         <div class="header-right">
+          <!-- 主题切换按钮 -->
+          <el-button @click="toggleTheme" circle class="theme-toggle-btn">
+            <el-icon>
+              <component :is="isDark ? 'Sunny' : 'Moon'" />
+            </el-icon>
+          </el-button>
+
           <el-badge :value="3" :hidden="false">
             <el-button circle :icon="Bell" size="default" />
           </el-badge>
@@ -191,6 +197,8 @@ import {
   Expand,
   Fold,
   Collection,
+  Sunny,
+  Moon,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -201,11 +209,61 @@ const userStore = useUserStore()
 const collapsed = ref(false)
 const isMobile = ref(false)
 const mobileMenuVisible = ref(false)
+const isDark = ref(false)
+
+// ===== 主题管理 =====
+const THEME_KEY = 'app-theme'
+
+const getSystemTheme = (): boolean => {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+
+const loadTheme = () => {
+  const saved = localStorage.getItem(THEME_KEY)
+  if (saved !== null) {
+    isDark.value = saved === 'dark'
+  } else {
+    isDark.value = getSystemTheme()
+  }
+  applyTheme(isDark.value)
+}
+
+const applyTheme = (dark: boolean) => {
+  const root = document.documentElement
+  if (dark) {
+    root.classList.add('dark-theme')
+  } else {
+    root.classList.remove('dark-theme')
+  }
+  localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light')
+}
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  applyTheme(isDark.value)
+  ElMessage.success(`已切换至${isDark.value ? '暗色' : '亮色'}模式`)
+}
+
+let systemThemeListener: ((e: MediaQueryListEvent) => void) | null = null
+
+const setupSystemThemeListener = () => {
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  systemThemeListener = (e: MediaQueryListEvent) => {
+    if (!localStorage.getItem(THEME_KEY)) {
+      isDark.value = e.matches
+      applyTheme(isDark.value)
+    }
+  }
+  mediaQuery.addEventListener('change', systemThemeListener)
+}
+
+const themeClass = computed(() => ({
+  'dark-mode': isDark.value
+}))
 
 // ===== 响应式检测 =====
 const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768
-  // 移动端默认收起侧边栏
   if (isMobile.value) {
     collapsed.value = true
     mobileMenuVisible.value = false
@@ -216,7 +274,6 @@ const checkMobile = () => {
 // ===== 移动端菜单控制 =====
 const toggleMobileMenu = () => {
   mobileMenuVisible.value = !mobileMenuVisible.value
-  // 移动端菜单展开时禁止滚动
   document.body.style.overflow = mobileMenuVisible.value ? 'hidden' : ''
 }
 
@@ -226,7 +283,6 @@ const closeMobileMenu = () => {
 }
 
 const handleMenuSelect = () => {
-  // 移动端点击菜单后自动关闭
   if (isMobile.value) {
     closeMobileMenu()
   }
@@ -234,12 +290,18 @@ const handleMenuSelect = () => {
 
 // ===== 生命周期 =====
 onMounted(() => {
+  loadTheme()
+  setupSystemThemeListener()
   checkMobile()
   window.addEventListener('resize', checkMobile)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', checkMobile)
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  if (systemThemeListener) {
+    mediaQuery.removeEventListener('change', systemThemeListener)
+  }
   document.body.style.overflow = ''
 })
 
@@ -269,7 +331,11 @@ function handleCommand(cmd: string) {
 </script>
 
 <style scoped>
-/* ===== 基础布局 ===== */
+/* ============================================================
+   Layout 组件专用样式
+   ============================================================ */
+
+/* ===== 应用容器 ===== */
 .app-container {
   height: 100vh;
   overflow: hidden;
@@ -277,24 +343,26 @@ function handleCommand(cmd: string) {
 
 /* ===== 侧边栏 ===== */
 .app-aside {
-  background-color: #304156;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--menu-bg);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
   z-index: 100;
 }
 
-/* ===== Logo ===== */
+/* ===== Logo 区域 ===== */
 .logo-wrapper {
   height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #273746;
+  background: var(--menu-logo-bg);
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 0;
+  transition: background 0.3s;
 }
 
 .logo-text {
@@ -333,7 +401,6 @@ function handleCommand(cmd: string) {
   text-align: center;
 }
 
-/* 折叠时隐藏文字 */
 :deep(.el-menu--collapse .el-menu-item span:not(.el-icon)),
 :deep(.el-menu--collapse .el-sub-menu span:not(.el-icon)) {
   display: none;
@@ -358,39 +425,26 @@ function handleCommand(cmd: string) {
     bottom: 0;
     transform: translateX(-100%);
     width: 220px !important;
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 2px 0 12px var(--card-shadow);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* 展开时滑入 */
   .app-aside.aside-mobile-open {
     transform: translateX(0);
   }
 
-  /* 遮罩 */
   .mobile-mask {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--mask-bg);
     z-index: -1;
     animation: fadeIn 0.3s ease;
   }
 
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  /* 移动端菜单按钮 */
   .menu-toggle-btn {
     font-size: 20px;
   }
 
-  /* 移动端用户信息简化 */
   .user-info .username-text {
     max-width: 60px;
     overflow: hidden;
@@ -413,12 +467,13 @@ function handleCommand(cmd: string) {
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  background: #ffffff;
-  border-bottom: 1px solid #e6e6e6;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
   height: 60px;
   flex-shrink: 0;
   z-index: 50;
   position: relative;
+  transition: background 0.3s, border-color 0.3s;
 }
 
 .header-left {
@@ -428,13 +483,14 @@ function handleCommand(cmd: string) {
   min-width: 0;
 }
 
-.header-left .page-title {
+.header-left .header-page-title {
   font-size: 16px;
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.3s;
 }
 
 .header-right {
@@ -444,6 +500,16 @@ function handleCommand(cmd: string) {
   flex-shrink: 0;
 }
 
+/* ===== 主题切换按钮 ===== */
+.theme-toggle-btn {
+  transition: transform 0.5s ease;
+}
+
+.theme-toggle-btn:hover {
+  transform: rotate(30deg);
+}
+
+/* ===== 用户信息 ===== */
 .user-info {
   display: flex;
   align-items: center;
@@ -452,11 +518,11 @@ function handleCommand(cmd: string) {
   padding: 6px 10px;
   border-radius: 4px;
   transition: background 0.3s;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .user-info:hover {
-  background: #f5f7fa;
+  background: var(--btn-hover-bg);
 }
 
 .user-info .username-text {
@@ -465,17 +531,18 @@ function handleCommand(cmd: string) {
 
 .user-info .role-badge {
   font-size: 12px;
-  color: #909399;
-  background: #f4f4f5;
+  color: var(--text-secondary);
+  background: var(--border-light);
   padding: 0 8px;
   border-radius: 10px;
   line-height: 20px;
   margin: 0 2px;
+  transition: background 0.3s, color 0.3s;
 }
 
 .user-info .dropdown-arrow {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 /* ===== 主内容 ===== */
@@ -486,25 +553,17 @@ function handleCommand(cmd: string) {
 
 .app-main {
   padding: 16px;
-  background: #f0f2f5;
+  background: var(--main-bg);
   overflow-y: auto;
   height: calc(100vh - 60px);
+  transition: background 0.3s;
 }
 
-.app-main::-webkit-scrollbar {
-  width: 6px;
-}
+/* ============================================================
+   响应式
+   ============================================================ */
 
-.app-main::-webkit-scrollbar-thumb {
-  background: #dcdfe6;
-  border-radius: 4px;
-}
-
-.app-main::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-/* ===== 桌面端小屏适配 ===== */
+/* 桌面端小屏适配 */
 @media (max-width: 1024px) and (min-width: 769px) {
   .app-header {
     padding: 0 16px;
@@ -522,7 +581,7 @@ function handleCommand(cmd: string) {
   }
 }
 
-/* ===== 移动端超小屏 ===== */
+/* 移动端超小屏 */
 @media (max-width: 480px) {
   .app-header {
     padding: 0 10px;
@@ -534,7 +593,7 @@ function handleCommand(cmd: string) {
     height: calc(100vh - 50px);
   }
 
-  .header-left .page-title {
+  .header-left .header-page-title {
     font-size: 14px;
     max-width: 100px;
   }
@@ -558,6 +617,18 @@ function handleCommand(cmd: string) {
   .user-info .username-text {
     max-width: 40px;
     font-size: 13px;
+  }
+}
+
+/* ============================================================
+   fadeIn 动画（用于移动端遮罩）
+   ============================================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 </style>

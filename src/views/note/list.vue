@@ -1,7 +1,6 @@
-<!-- src/views/NoteList.vue - 使用分离的 API -->
-
+<!-- src/views/NoteList.vue - 精简版 -->
 <template>
-  <div class="note-list">
+  <div class="note-list page-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
@@ -10,10 +9,10 @@
             <el-icon><Document /></el-icon>
             笔记列表
           </h2>
-          <span class="note-count">共 {{ total }} 篇笔记</span>
+          <span class="page-count">共 {{ total }} 篇笔记</span>
         </div>
         <div class="header-right">
-          <el-button type="primary" :icon="Plus" @click="$router.push('/note/edit')">
+          <el-button type="primary" :icon="Plus" @click="$router.push('/note/edit')" class="btn-primary">
             新建笔记
           </el-button>
         </div>
@@ -21,7 +20,7 @@
     </div>
 
     <!-- 搜索和筛选栏 -->
-    <el-card class="filter-card" shadow="hover">
+    <el-card class="filter-card page-card" shadow="hover">
       <div class="filter-content">
         <div class="filter-left">
           <el-input
@@ -29,7 +28,7 @@
             placeholder="搜索标题或内容..."
             prefix-icon="Search"
             clearable
-            class="search-input"
+            class="search-input input-common"
             @keyup.enter="loadList"
             @clear="loadList"
           />
@@ -37,7 +36,7 @@
             v-model="query.status" 
             placeholder="全部状态" 
             clearable
-            class="status-select"
+            class="status-select select-common"
             @change="loadList"
           >
             <el-option label="全部" value="" />
@@ -46,13 +45,13 @@
             <el-option label="已收藏" value="star" />
             <el-option label="置顶" value="top" />
           </el-select>
-          <el-button :icon="Refresh" @click="loadList">刷新</el-button>
+          <el-button :icon="Refresh" @click="loadList" class="btn-default">刷新</el-button>
         </div>
       </div>
     </el-card>
 
     <!-- 笔记列表 -->
-    <el-card class="list-card" shadow="hover">
+    <el-card class="list-card page-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -68,6 +67,7 @@
         style="width: 100%"
         v-loading="loading"
         element-loading-text="加载中..."
+        class="page-table"
         @row-click="handleRowClick"
       >
         <el-table-column label="标题" min-width="200" prop="title">
@@ -75,9 +75,9 @@
             <div class="title-cell">
               <span class="title-text">{{ row.title || '无标题笔记' }}</span>
               <div class="title-tags">
-                <el-tag v-if="row.is_top" type="success" size="small">置顶</el-tag>
-                <el-tag v-if="row.is_star" type="warning" size="small" effect="plain">收藏</el-tag>
-                <el-tag v-if="row.is_draft" type="info" size="small">草稿</el-tag>
+                <el-tag v-if="row.is_top" type="success" size="small" class="tag-success">置顶</el-tag>
+                <el-tag v-if="row.is_star" type="warning" size="small" effect="plain" class="tag-warning">收藏</el-tag>
+                <el-tag v-if="row.is_draft" type="info" size="small" class="tag-info">草稿</el-tag>
               </div>
             </div>
           </template>
@@ -85,14 +85,14 @@
 
         <el-table-column label="分类" min-width="150" align="center">
           <template #default="{ row }">
-            <div class="cate-cell" v-if="row.categoryNames && row.categoryNames.length">
+            <div class="cate-cell" v-if="row.categoryNames?.length">
               <el-tag
                 v-for="name in row.categoryNames"
                 :key="name"
                 size="small"
                 type="primary"
                 plain
-                class="cate-item"
+                class="cate-item tag-primary"
               >
                 {{ name }}
               </el-tag>
@@ -103,18 +103,18 @@
 
         <el-table-column label="标签" min-width="150" prop="tags" align="center">
           <template #default="{ row }">
-            <div class="tags-cell" v-if="row.tags && row.tags.length > 0">
+            <div class="tags-cell" v-if="row.tags?.length">
               <el-tag 
                 v-for="tag in row.tags.slice(0, 3)" 
                 :key="tag"
                 size="small"
                 type="primary"
                 plain
-                class="tag-item"
+                class="tag-item tag-primary"
               >
                 #{{ tag }}
               </el-tag>
-              <el-tag v-if="row.tags.length > 3" size="small" type="info">
+              <el-tag v-if="row.tags.length > 3" size="small" type="info" class="tag-info">
                 +{{ row.tags.length - 3 }}
               </el-tag>
             </div>
@@ -130,9 +130,9 @@
 
         <el-table-column label="操作" width="240" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click.stop="edit(row.id)">编辑</el-button>
-            <el-button size="small" type="success" link @click.stop="openShare(row)">分享</el-button>
-            <el-button size="small" type="danger" link @click.stop="handleDelete(row.id)">删除</el-button>
+            <el-button size="small" type="primary" link class="btn-link-primary" @click.stop="edit(row.id)">编辑</el-button>
+            <el-button size="small" type="success" link class="btn-link-success" @click.stop="openShare(row)">分享</el-button>
+            <el-button size="small" type="danger" link class="btn-link-danger" @click.stop="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -140,7 +140,7 @@
       <!-- 空状态 -->
       <div v-if="tableData.length === 0 && !loading" class="empty-state">
         <el-empty description="还没有笔记，开始写第一篇吧" :image-size="120">
-          <el-button type="primary" @click="$router.push('/note/edit')">写第一篇笔记</el-button>
+          <el-button type="primary" @click="$router.push('/note/edit')" class="btn-primary">写第一篇笔记</el-button>
         </el-empty>
       </div>
 
@@ -160,7 +160,7 @@
     </el-card>
 
     <!-- 分享对话框 -->
-    <el-dialog v-model="shareVisible" title="创建分享链接" width="480px" destroy-on-close>
+    <el-dialog v-model="shareVisible" title="创建分享链接" width="480px" destroy-on-close class="dialog-common">
       <el-form :model="shareForm" label-width="80px">
         <el-form-item label="访问密码">
           <el-input 
@@ -168,12 +168,13 @@
             placeholder="留空则公开访问"
             show-password
             clearable
+            class="input-common"
           />
         </el-form-item>
         <el-form-item label="权限">
           <el-radio-group v-model="shareForm.permission">
-            <el-radio label="read">仅阅读</el-radio>
-            <el-radio label="edit" disabled>可编辑（即将支持）</el-radio>
+            <el-radio value="read">仅阅读</el-radio>
+            <el-radio value="edit" disabled>可编辑（即将支持）</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="有效期">
@@ -185,10 +186,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="shareVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleCreateShare" :loading="shareLoading">
-          {{ shareLoading ? '创建中...' : '创建分享' }}
-        </el-button>
+        <div class="dialog-footer">
+          <el-button @click="shareVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleCreateShare" :loading="shareLoading" class="btn-primary">
+            {{ shareLoading ? '创建中...' : '创建分享' }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -218,7 +221,6 @@ const query = ref({
   status: '' 
 })
 
-// 分享相关
 const shareVisible = ref(false)
 const shareLoading = ref(false)
 const shareForm = ref({ 
@@ -228,7 +230,6 @@ const shareForm = ref({
   expireDays: 7
 })
 
-// ===== 加载列表 =====
 async function loadList() {
   loading.value = true
   try {
@@ -238,49 +239,36 @@ async function loadList() {
       q: query.value.keyword
     }
     
-    // 根据状态筛选
-    if (query.value.status === 'draft') {
-      params.is_draft = true
-    } else if (query.value.status === 'star') {
-      params.is_star = true
-    } else if (query.value.status === 'top') {
-      params.is_top = true
-    } else if (query.value.status === 'published') {
-      params.is_draft = false
-    }
+    if (query.value.status === 'draft') params.is_draft = true
+    else if (query.value.status === 'star') params.is_star = true
+    else if (query.value.status === 'top') params.is_top = true
+    else if (query.value.status === 'published') params.is_draft = false
 
     const res = await getNoteList(params)
     tableData.value = res?.data?.list || []
     total.value = res?.data?.total || 0
-  } catch (error) {
+  } catch {
     ElMessage.error('加载笔记列表失败')
   } finally {
     loading.value = false
   }
 }
 
-// ===== 编辑 =====
 function edit(id: number) {
   router.push({ path: '/note/edit', query: { id: String(id) } })
 }
 
-// ===== 行点击跳转 =====
 function handleRowClick(row: Note) {
   edit(row.id)
 }
 
-// ===== 移入回收站 =====
 async function handleDelete(id: number) {
   try {
-    await ElMessageBox.confirm(
-      '确定要移入回收站吗？',
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+    await ElMessageBox.confirm('确定要移入回收站吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
     await deleteNote(id)
     ElMessage.success('已移入回收站')
     loadList()
@@ -291,7 +279,6 @@ async function handleDelete(id: number) {
   }
 }
 
-// ===== 分享 =====
 function openShare(row: Note) {
   shareForm.value.noteId = row.id
   shareForm.value.password = ''
@@ -328,24 +315,19 @@ async function handleCreateShare() {
     }
     
     shareVisible.value = false
-  } catch (error) {
+  } catch {
     ElMessage.error('创建分享失败，请重试')
   } finally {
     shareLoading.value = false
   }
 }
 
-// ===== 生命周期 =====
-onMounted(() => {
-  loadList()
-})
+onMounted(loadList)
 </script>
 
 <style scoped>
 .note-list {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
 }
 
 /* ===== 页面头部 ===== */
@@ -358,41 +340,56 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px 16px;
+  width: 100%;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
+  min-width: 0;
 }
 
-.page-title {
+.header-left .page-title {
   font-size: 22px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 0;
+  white-space: nowrap;
 }
 
-.page-title .el-icon {
-  color: #409EFF;
+.header-left .page-title .el-icon {
+  color: var(--theme-color);
 }
 
-.note-count {
+.header-left .page-count {
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
-/* ===== 筛选卡片 ===== */
+/* 关键：桌面端按钮在右侧，不被压缩 */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-right .el-button {
+  white-space: nowrap;
+}
+
 .filter-card {
   margin-bottom: 20px;
-  border-radius: 8px;
 }
 
-:deep(.filter-card .el-card__body) {
+.filter-card :deep(.el-card__body) {
   padding: 16px 20px;
 }
 
@@ -421,17 +418,12 @@ onMounted(() => {
   width: 140px;
 }
 
-/* ===== 列表卡片 ===== */
-.list-card {
-  border-radius: 8px;
-}
-
-:deep(.list-card .el-card__header) {
+.list-card :deep(.el-card__header) {
   padding: 14px 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-color) !important;
 }
 
-:deep(.list-card .el-card__body) {
+.list-card :deep(.el-card__body) {
   padding: 0;
 }
 
@@ -447,14 +439,13 @@ onMounted(() => {
   gap: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .card-title .el-icon {
-  color: #409EFF;
+  color: var(--theme-color);
 }
 
-/* ===== 表格 ===== */
 .title-cell {
   display: flex;
   flex-direction: column;
@@ -463,7 +454,7 @@ onMounted(() => {
 
 .title-text {
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .title-tags {
@@ -472,7 +463,7 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-.title-tags .el-tag {
+.title-tags :deep(.el-tag) {
   font-size: 12px;
   height: 20px;
   line-height: 18px;
@@ -492,7 +483,7 @@ onMounted(() => {
 }
 
 .empty-text {
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   font-size: 13px;
 }
 
@@ -507,40 +498,67 @@ onMounted(() => {
   font-size: 12px;
 }
 
-/* ===== 空状态 ===== */
-.empty-state {
-  padding: 40px 0;
-}
-
-/* ===== 分页 ===== */
 .pagination-wrapper {
   padding: 16px 20px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
 }
 
-/* ===== 响应式 ===== */
-@media (max-width: 768px) {
-  .note-list {
-    padding: 12px;
-  }
+/* ===== 暗色主题标签适配（由全局样式提供，这里保留覆盖） ===== */
+.dark-theme .title-tags :deep(.el-tag--success) {
+  background-color: rgba(103, 194, 58, 0.15) !important;
+  border-color: rgba(103, 194, 58, 0.3) !important;
+  color: #67c23a !important;
+}
 
-  .page-title {
-    font-size: 18px;
+.dark-theme .title-tags :deep(.el-tag--warning) {
+  background-color: rgba(230, 162, 60, 0.15) !important;
+  border-color: rgba(230, 162, 60, 0.3) !important;
+  color: #e6a23c !important;
+}
+
+.dark-theme .title-tags :deep(.el-tag--info) {
+  background-color: rgba(144, 147, 153, 0.15) !important;
+  border-color: rgba(144, 147, 153, 0.3) !important;
+  color: #c0c4cc !important;
+}
+
+.dark-theme .cate-item,
+.dark-theme .tag-item {
+  background-color: rgba(64, 158, 255, 0.1) !important;
+  border-color: rgba(64, 158, 255, 0.2) !important;
+  color: #66b1ff !important;
+}
+
+
+@media (max-width: 768px) {
+   .note-list {
+    padding: 12px;
   }
 
   .header-content {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 12px;
   }
 
+  .header-left {
+    flex-wrap: wrap;
+  }
+
+  .header-left .page-title {
+    font-size: 18px;
+  }
+
+  /* 移动端：按钮占满宽度 */
   .header-right {
     width: 100%;
   }
 
   .header-right .el-button {
     width: 100%;
+    justify-content: center;
   }
 
   .filter-content {
@@ -564,6 +582,43 @@ onMounted(() => {
 
   .pagination-wrapper {
     justify-content: center;
+    padding: 12px 16px;
+  }
+  
+}
+@media (max-width: 480px) {
+  .note-list {
+    padding: 8px;
+  }
+
+  .header-left .page-title {
+    font-size: 16px;
+  }
+
+  .header-left .page-count {
+    font-size: 12px;
+  }
+
+  .list-card :deep(.el-card__header) {
+    padding: 10px 14px;
+  }
+
+  .pagination-wrapper {
+    padding: 10px 12px;
+  }
+
+  :deep(.el-table .cell) {
+    padding: 0 6px;
+  }
+
+  :deep(.el-table .el-button--small) {
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+
+  .dialog-common :deep(.el-dialog) {
+    width: 92% !important;
+    margin: 16px auto !important;
   }
 }
 </style>

@@ -5,6 +5,7 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { refreshToken,getCurrentUserInfo} from '@/api'
 import type { UserItem } from '@/api'
+import { CODE } from '@/types/response'
 export const useUserStore = defineStore('user', () => {
   // ===== State =====
   const accessToken = ref(localStorage.getItem('accessToken') || '')
@@ -35,7 +36,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       const res = await refreshToken(refresh)
 
-      if (res.code === 0 && res.data?.accessToken) {
+      if (res.code === CODE.SUCCESS && res.data?.accessToken) {
         const newAccessToken = res.data.accessToken
         // 更新 accessToken，保留 refreshToken
         accessToken.value = newAccessToken
@@ -56,7 +57,7 @@ export const useUserStore = defineStore('user', () => {
   async function fetchUserInfo(): Promise<boolean> {
     try {
       const res = await getCurrentUserInfo()
-      if (res.code === 0 && res.data) {
+      if (res.code === CODE.SUCCESS && res.data) {
         userInfo.value = res.data
         // 更新 uid 和 role（确保与后端一致）
         uid.value = res.data.id

@@ -1,7 +1,7 @@
-<!-- src/views/Profile.vue - 个人资料页面 -->
+<!-- src/views/Profile.vue - 精简版 -->
 <template>
-  <div class="profile-page">
-    <el-card class="profile-card" shadow="hover">
+  <div class="profile-page page-container">
+    <el-card class="profile-card page-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">
@@ -20,32 +20,34 @@
       >
         <!-- 头像上传区域 -->
         <el-form-item label="个人头像">
-          <el-upload
-            class="avatar-uploader"
-            action=""
-            :http-request="uploadAvatar"
-            :show-file-list="false"
-            accept="image/jpeg,image/png,image/webp"
-            :before-upload="beforeAvatarUpload"
-          >
-            <div v-if="form.avatar" class="avatar-preview">
-              <img :src="form.avatar" alt="头像" class="avatar-img" />
-              <div class="avatar-mask">点击更换</div>
-            </div>
-            <div v-else class="avatar-upload">
-              <el-icon><Plus /></el-icon>
-              <div class="upload-text">上传头像</div>
-            </div>
-          </el-upload>
-          <el-button
-            v-if="form.avatar"
-            type="text"
-            icon="Delete"
-            @click="clearAvatar"
-            class="clear-avatar-btn"
-          >
-            清空头像
-          </el-button>
+          <div class="avatar-wrapper">
+            <el-upload
+              class="avatar-uploader"
+              action=""
+              :http-request="uploadAvatar"
+              :show-file-list="false"
+              accept="image/jpeg,image/png,image/webp"
+              :before-upload="beforeAvatarUpload"
+            >
+              <div v-if="form.avatar" class="avatar-preview">
+                <img :src="form.avatar" alt="头像" class="avatar-img" />
+                <div class="avatar-mask">点击更换</div>
+              </div>
+              <div v-else class="avatar-upload">
+                <el-icon><Plus /></el-icon>
+                <div class="upload-text">上传头像</div>
+              </div>
+            </el-upload>
+            <el-button
+              v-if="form.avatar"
+              type="text"
+              @click="clearAvatar"
+              class="clear-avatar-btn"
+            >
+              <el-icon><Delete /></el-icon>
+              清空头像
+            </el-button>
+          </div>
         </el-form-item>
 
         <el-form-item label="用户名" prop="username">
@@ -62,9 +64,7 @@
             v-model="form.email"
             placeholder="请输入邮箱地址"
           />
-          <el-text type="info" style="font-size:12px">
-            修改邮箱后需要前往邮箱点击激活链接才能生效
-          </el-text>
+          <div class="form-tip">修改邮箱后需要前往邮箱点击激活链接才能生效</div>
         </el-form-item>
 
         <el-form-item label="角色">
@@ -84,18 +84,18 @@
         </el-form-item>
 
         <el-form-item label="注册时间">
-          <span>{{ formatTime(userInfo?.created_at) }}</span>
+          <span class="info-text">{{ formatTime(userInfo?.created_at) }}</span>
         </el-form-item>
 
         <el-form-item label="最后更新">
-          <span>{{ formatTime(userInfo?.updated_at) }}</span>
+          <span class="info-text">{{ formatTime(userInfo?.updated_at) }}</span>
         </el-form-item>
 
         <el-form-item>
           <el-button type="primary" @click="handleSubmit" :loading="submitting">
             {{ submitting ? '保存中...' : '保存修改' }}
           </el-button>
-        
+          <el-button @click="resetForm">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -107,23 +107,21 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElForm, type FormRules } from 'element-plus'
 import { User, Plus, Delete } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { uploadFile, getFileUrl,updateCurrentUserInfo } from '@/api'
+import { uploadFile, getFileUrl, updateCurrentUserInfo } from '@/api'
 import { formatTime } from '@/utils/format'
+
 const userStore = useUserStore()
 const submitting = ref(false)
 const formRef = ref<InstanceType<typeof ElForm>>()
 
-// 用户信息
 const userInfo = computed(() => userStore.userInfo)
 
-// 表单数据
 const form = reactive({
   username: '',
   email: '',
   avatar: ''
 })
 
-// 表单校验规则
 const formRules: FormRules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
@@ -136,7 +134,6 @@ const formRules: FormRules = {
   ]
 }
 
-// ===== 加载用户信息 =====
 function loadUserInfo() {
   if (userInfo.value) {
     form.username = userInfo.value.username || ''
@@ -145,71 +142,54 @@ function loadUserInfo() {
   }
 }
 
-// 头像上传前校验：大小、格式
 const beforeAvatarUpload = (file: File) => {
   const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
   if (!isImage) {
     ElMessage.error('只能上传 JPG / PNG / WebP 格式图片')
     return false
   }
-  const isLt2M = file.size / 1024 / 1024 < 2
-  if (!isLt2M) {
+  if (file.size / 1024 / 1024 > 2) {
     ElMessage.error('图片大小不能超过 2MB')
     return false
   }
   return true
 }
 
-// 自定义上传请求
 const uploadAvatar = async (options: { file: File }) => {
   try {
     const res = await uploadFile({ file: options.file })
-    if (res.code === 0 && res.data) {
-      // 拼接完整访问地址
-      const avatarUrl = getFileUrl(res.data.storage_path)
-      form.avatar = avatarUrl
+    if (res.data) {
+      form.avatar = getFileUrl(res.data.storage_path)
       ElMessage.success('头像上传成功，请点击保存修改')
     }
-  } catch (err) {
+  } catch {
     ElMessage.error('头像上传失败')
   }
 }
 
-// 清空头像
 const clearAvatar = () => {
   form.avatar = ''
   ElMessage.info('已清空头像，保存后生效')
 }
 
-// ===== 提交修改 =====
 async function handleSubmit() {
   try {
     await formRef.value?.validate()
     submitting.value = true
 
-    // 构建更新参数：只传变更字段
     const params: { username?: string; email?: string; avatar?: string } = {}
-    if (form.username !== userInfo.value?.username) {
-      params.username = form.username
-    }
-    if (form.email !== userInfo.value?.email) {
-      params.email = form.email
-    }
-    if (form.avatar !== userInfo.value?.avatar) {
-      params.avatar = form.avatar
-    }
+    if (form.username !== userInfo.value?.username) params.username = form.username
+    if (form.email !== userInfo.value?.email) params.email = form.email
+    if (form.avatar !== userInfo.value?.avatar) params.avatar = form.avatar
 
-    // 检查是否有修改
     if (Object.keys(params).length === 0) {
       ElMessage.warning('没有修改任何信息')
       return
     }
 
-    // 调用接口更新
     const res = await updateCurrentUserInfo(params)
     if (res.code === 0 && res.msg) {
       ElMessage.success(res.msg)
-      // 刷新用户信息
       await userStore.fetchUserInfo()
     }
   } catch (error) {
@@ -221,7 +201,6 @@ async function handleSubmit() {
   }
 }
 
-// ===== 重置表单 =====
 function resetForm() {
   if (userInfo.value) {
     form.username = userInfo.value.username || ''
@@ -229,10 +208,9 @@ function resetForm() {
     form.avatar = userInfo.value.avatar || ''
   }
   formRef.value?.clearValidate()
+  ElMessage.info('已重置')
 }
 
-
-// ===== 生命周期 =====
 onMounted(async () => {
   if (!userInfo.value) {
     await userStore.fetchUserInfo()
@@ -244,20 +222,15 @@ onMounted(async () => {
 <style scoped>
 .profile-page {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
 }
 
-.profile-card {
-  border-radius: 12px;
-}
-
-:deep(.profile-card .el-card__header) {
+.profile-card :deep(.el-card__header) {
   padding: 16px 24px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--border-color) !important;
+  background: var(--bg-gray);
 }
 
-:deep(.profile-card .el-card__body) {
+.profile-card :deep(.el-card__body) {
   padding: 24px;
 }
 
@@ -272,11 +245,11 @@ onMounted(async () => {
   gap: 8px;
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .card-title .el-icon {
-  color: #409EFF;
+  color: var(--theme-color);
   font-size: 20px;
 }
 
@@ -284,23 +257,48 @@ onMounted(async () => {
   max-width: 100%;
 }
 
-:deep(.profile-form .el-form-item) {
+.profile-form :deep(.el-form-item) {
   margin-bottom: 22px;
 }
 
-:deep(.profile-form .el-input) {
+.profile-form :deep(.el-input) {
   max-width: 400px;
 }
 
-/* 头像上传样式 */
+/* 表单提示 */
+.form-tip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* 信息文字 */
+.info-text {
+  color: var(--text-regular);
+}
+
+/* 头像上传 */
+.avatar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .avatar-uploader :deep(.el-upload) {
-  border: 1px dashed #dcdcdc;
-  border-radius: 8px;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
   cursor: pointer;
   position: relative;
   overflow: hidden;
   width: 120px;
   height: 120px;
+  transition: all var(--transition-duration);
+  background: var(--bg-gray);
+}
+
+.avatar-uploader :deep(.el-upload:hover) {
+  border-color: var(--theme-color);
 }
 
 .avatar-preview {
@@ -308,18 +306,20 @@ onMounted(async () => {
   height: 100%;
   position: relative;
 }
+
 .avatar-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
 .avatar-mask {
   position: absolute;
   left: 0;
   bottom: 0;
   width: 100%;
   height: 36px;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.6);
   color: #fff;
   font-size: 12px;
   display: flex;
@@ -334,33 +334,83 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #8c8c8c;
+  color: var(--text-placeholder);
 }
+
 .avatar-upload .el-icon {
   font-size: 32px;
   margin-bottom: 6px;
+  color: var(--text-placeholder);
+}
+
+.upload-text {
+  font-size: 13px;
+  color: var(--text-placeholder);
 }
 
 .clear-avatar-btn {
-  margin-left: 16px;
+  color: var(--text-secondary) !important;
 }
 
-/* 响应式 */
+.clear-avatar-btn:hover {
+  color: var(--theme-color) !important;
+}
+
 @media (max-width: 768px) {
   .profile-page {
     padding: 12px;
   }
-
-  .profile-card {
-    max-width: 100%;
-  }
-
-  :deep(.profile-card .el-card__body) {
+  .profile-card :deep(.el-card__body) {
     padding: 16px;
   }
-
-  :deep(.profile-form .el-input) {
+  .profile-form :deep(.el-input) {
     max-width: 100%;
+  }
+  .avatar-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .avatar-uploader :deep(.el-upload) {
+    width: 100px;
+    height: 100px;
+  }
+  .clear-avatar-btn {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-page {
+    padding: 8px;
+  }
+  .profile-card :deep(.el-card__body) {
+    padding: 12px;
+  }
+  .profile-card :deep(.el-card__header) {
+    padding: 12px 16px;
+  }
+  .card-title {
+    font-size: 16px;
+  }
+  .avatar-uploader :deep(.el-upload) {
+    width: 80px;
+    height: 80px;
+  }
+  .avatar-mask {
+    height: 28px;
+    font-size: 10px;
+  }
+  .avatar-upload .el-icon {
+    font-size: 24px;
+  }
+  .upload-text {
+    font-size: 11px;
+  }
+  .profile-form :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+  .profile-form :deep(.el-form-item__label) {
+    font-size: 13px;
   }
 }
 </style>

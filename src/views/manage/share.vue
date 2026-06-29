@@ -1,7 +1,6 @@
-<!-- src/views/ShareManage.vue - 修复类型冲突 -->
-
+<!-- src/views/ShareManage.vue - 使用全局公共样式 -->
 <template>
-  <div class="share-manage">
+  <div class="share-manage page-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -9,7 +8,7 @@
           <el-icon><ShareIcon /></el-icon>
           分享管理
         </h2>
-        <span class="count">共 {{ tableData.length }} 个分享</span>
+        <span class="page-count">共 {{ tableData.length }} 个分享</span>
       </div>
       <div class="header-right">
         <el-button :icon="Refresh" @click="load" :loading="loading">刷新</el-button>
@@ -17,12 +16,13 @@
     </div>
 
     <!-- 分享列表 -->
-    <el-card class="list-card" shadow="hover">
+    <el-card class="list-card page-card" shadow="hover">
       <el-table
         :data="tableData"
         border
         v-loading="loading"
         style="width: 100%"
+        class="page-table"
       >
         <el-table-column label="笔记标题" prop="title" min-width="160">
           <template #default="{ row }">
@@ -32,11 +32,11 @@
 
         <el-table-column label="访问密码" prop="access_password" width="120" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.access_password" type="warning" size="small">
+            <el-tag v-if="row.access_password" type="warning" size="small" class="tag-warning">
               <el-icon><Lock /></el-icon>
               已加密
             </el-tag>
-            <el-tag v-else type="success" size="small" plain>
+            <el-tag v-else type="success" size="small" plain class="tag-success">
               <el-icon><Unlock /></el-icon>
               公开
             </el-tag>
@@ -52,7 +52,7 @@
         <el-table-column label="过期时间" prop="expire_at" width="170" align="center">
           <template #default="{ row }">
             <span v-if="row.expire_at">{{ formatTime(row.expire_at) }}</span>
-            <el-tag v-else size="small" type="info" plain>永久</el-tag>
+            <el-tag v-else size="small" type="info" plain class="tag-info">永久</el-tag>
           </template>
         </el-table-column>
 
@@ -62,10 +62,11 @@
               v-if="isExpired(row.expire_at)"
               type="danger"
               size="small"
+              class="tag-danger"
             >
               已过期
             </el-tag>
-            <el-tag v-else type="success" size="small" plain>
+            <el-tag v-else type="success" size="small" plain class="tag-success">
               有效
             </el-tag>
           </template>
@@ -77,6 +78,7 @@
               size="small"
               type="primary"
               link
+              class="btn-link-primary"
               @click="copyLink(row.share_code)"
             >
               <el-icon><LinkIcon /></el-icon>
@@ -86,6 +88,7 @@
               size="small"
               type="danger"
               link
+              class="btn-link-danger"
               @click="handleDelete(row.id)"
             >
               <el-icon><Delete /></el-icon>
@@ -129,7 +132,6 @@ async function load() {
   loading.value = true
   try {
     const res = await getShareList()
-    // 实际返回：res.data 直接是数组
     tableData.value = Array.isArray(res?.data) ? res.data : []
   } catch (error) {
     ElMessage.error('加载数据失败')
@@ -168,8 +170,6 @@ async function handleDelete(id: number) {
   }
 }
 
-
-
 // ===== 判断是否过期 =====
 function isExpired(expireAt: string) {
   if (!expireAt) return false
@@ -181,74 +181,37 @@ onMounted(load)
 </script>
 
 <style scoped>
+/* ============================================================
+   ShareManage 专用样式
+   ============================================================ */
+
 .share-manage {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
 }
 
-/* ===== 页面头部 ===== */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: #303133;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-}
-
-.page-title .el-icon {
-  color: #409EFF;
-}
-
-.count {
-  font-size: 14px;
-  color: #909399;
-}
-
-/* ===== 列表卡片 ===== */
-.list-card {
-  border-radius: 8px;
-}
-
-:deep(.list-card .el-card__body) {
-  padding: 0;
-}
-
+/* ===== 标题文字 ===== */
 .title-text {
-  color: #303133;
+  color: var(--text-primary);
   font-weight: 500;
+  transition: color var(--transition-duration);
 }
 
-/* ===== 空状态 ===== */
-.empty-state {
-  padding: 40px 0;
+/* ===== 图标颜色适配 ===== */
+:deep(.el-icon) {
+  color: var(--text-regular);
+  transition: color var(--transition-duration);
 }
 
-/* ===== 响应式 ===== */
+:deep(.el-tag .el-icon) {
+  color: inherit;
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
 @media (max-width: 768px) {
   .share-manage {
     padding: 12px;
-  }
-
-  .page-title {
-    font-size: 18px;
   }
 
   .page-header {
@@ -263,13 +226,11 @@ onMounted(load)
   .header-right .el-button {
     width: 100%;
   }
+}
 
-  :deep(.el-table) {
-    font-size: 13px;
-  }
-
-  :deep(.el-table .cell) {
-    padding: 8px 6px !important;
+@media (max-width: 480px) {
+  .share-manage {
+    padding: 8px;
   }
 }
 </style>

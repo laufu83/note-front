@@ -1,5 +1,11 @@
 <template>
-  <el-dialog v-model="visible" title="版本历史" width="700px" @close="handleClose">
+  <el-dialog 
+    v-model="visible" 
+    title="版本历史" 
+    width="700px" 
+    class="history-dialog"
+    @close="handleClose"
+  >
     <div class="history-list" v-loading="loading">
       <div 
         v-for="version in versions" 
@@ -10,8 +16,8 @@
         <div class="history-info">
           <div class="history-title">
             {{ version.title || '未命名笔记' }}
-            <el-tag v-if="version.isCurrent" size="small" type="success" class="ml-2">当前版本</el-tag>
-            <el-tag v-if="version.version" size="small" type="info" class="ml-2">v{{ version.version }}</el-tag>
+            <el-tag v-if="version.isCurrent" size="small" type="success">当前版本</el-tag>
+            <el-tag v-if="version.version" size="small" type="info">v{{ version.version }}</el-tag>
           </div>
           <div class="history-meta">
             <span><el-icon><User /></el-icon> {{ version.userName || '未知用户' }}</span>
@@ -48,6 +54,7 @@
       v-model="showPreview" 
       title="版本预览" 
       width="800px" 
+      class="preview-dialog"
       append-to-body
       :close-on-click-modal="false"
     >
@@ -77,7 +84,7 @@
 import { ref, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { User, Clock, Document } from '@element-plus/icons-vue';
-import Vditor from 'vditor';
+import { marked } from 'marked';
 import { getNoteHistoryList, deleteHistory, type NoteHistory } from '@/api/note';
 import { formatTime } from '@/utils/format';
 import { isSuccess, getData } from '@/types/response';
@@ -86,15 +93,10 @@ import { isSuccess, getData } from '@/types/response';
 // 类型定义
 // ============================================================
 
-/** 历史版本（扩展） */
 interface HistoryVersion extends NoteHistory {
-  /** 用户名（展示用） */
   userName?: string;
-  /** 字数（展示用） */
   wordCount?: number;
-  /** 是否为当前版本 */
   isCurrent?: boolean;
-  /** 创建时间（兼容驼峰） */
   createdAt?: string;
 }
 
@@ -105,9 +107,7 @@ interface HistoryVersion extends NoteHistory {
 const props = defineProps<{
   modelValue: boolean;
   noteId: number;
-  /** 当前笔记内容（用于判断当前版本） */
   currentContent?: string;
-  /** 当前笔记标题 */
   currentTitle?: string;
 }>();
 
@@ -140,9 +140,6 @@ const visible = computed({
 // 方法
 // ============================================================
 
-/**
- * 加载历史版本
- */
 async function loadHistory() {
   if (!props.noteId) return;
 
@@ -153,12 +150,11 @@ async function loadHistory() {
     if (isSuccess(res)) {
       const data = getData<NoteHistory[]>(res) || [];
       
-      // 转换为展示格式
       versions.value = data.map((item, index) => ({
         ...item,
         userName: item.user_name || '未知用户',
         wordCount: item.content?.length || 0,
-        isCurrent: index === 0, // 最新版本作为当前版本
+        isCurrent: index === 0,
         createdAt: item.created_at,
         version: item.version || data.length - index
       }));
@@ -175,12 +171,6 @@ async function loadHistory() {
   }
 }
 
-/**
- * 预览版本
- */
-/**
- * 预览版本
- */
 async function previewVersion(version: HistoryVersion) {
   if (!version || !version.content) {
     ElMessage.warning('该版本内容为空');
@@ -188,8 +178,8 @@ async function previewVersion(version: HistoryVersion) {
   }
 
   try {
-    // ✅ 如果 md2html 返回 Promise，使用 await
-    previewContent.value = await Vditor.md2html(version.content);
+    // ✅ 使用 marked 渲染 Markdown（更稳定）
+    previewContent.value = marked.parse(version.content) as string;
     selectedVersion.value = version;
     showPreview.value = true;
   } catch (error) {
@@ -198,9 +188,6 @@ async function previewVersion(version: HistoryVersion) {
   }
 }
 
-/**
- * 恢复版本
- */
 async function restoreVersion(version: HistoryVersion) {
   if (version.isCurrent) {
     ElMessage.info('当前版本无需恢复');
@@ -228,9 +215,6 @@ async function restoreVersion(version: HistoryVersion) {
   }
 }
 
-/**
- * 删除版本
- */
 async function deleteVersion(version: HistoryVersion) {
   if (version.isCurrent) {
     ElMessage.warning('当前版本不能删除');
@@ -251,8 +235,6 @@ async function deleteVersion(version: HistoryVersion) {
     await deleteHistory(version.id);
     ElMessage.success('版本删除成功');
     emit('delete', version.id);
-    
-    // 刷新列表
     await loadHistory();
   } catch (error) {
     if (error !== 'cancel') {
@@ -262,9 +244,6 @@ async function deleteVersion(version: HistoryVersion) {
   }
 }
 
-/**
- * 从预览中恢复
- */
 function restoreFromPreview() {
   if (selectedVersion.value) {
     restoreVersion(selectedVersion.value);
@@ -272,11 +251,7 @@ function restoreFromPreview() {
   }
 }
 
-/**
- * 关闭对话框
- */
 function handleClose() {
-  // 重置预览状态
   showPreview.value = false;
   selectedVersion.value = null;
 }
@@ -285,7 +260,6 @@ function handleClose() {
 // 监听
 // ============================================================
 
-// 当对话框打开时加载数据
 watch(visible, (newVal) => {
   if (newVal && props.noteId) {
     loadHistory();
@@ -303,6 +277,14 @@ defineExpose({
 </script>
 
 <style scoped>
+/* ============================================================
+   历史版本对话框
+   ============================================================ */
+
+.history-dialog :deep(.el-dialog__body) {
+  padding: 0 20px 20px;
+}
+
 .history-list {
   max-height: 500px;
   overflow-y: auto;
@@ -313,22 +295,27 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #e4e7ed;
-  transition: background 0.2s;
+  border-bottom: 1px solid var(--border-color);
+  transition: background var(--transition-duration);
+}
+
+.history-item:last-child {
+  border-bottom: none;
 }
 
 .history-item:hover {
-  background: #f5f7fa;
+  background: var(--bg-gray);
 }
 
 .history-item.is-current {
-  background: #f0f9eb;
+  background: rgba(103, 194, 58, 0.08);
 }
 
 .history-item.is-current:hover {
-  background: #e8f5e0;
+  background: rgba(103, 194, 58, 0.12);
 }
 
+/* ===== 历史信息 ===== */
 .history-info {
   flex: 1;
   min-width: 0;
@@ -340,21 +327,18 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.history-title .ml-2 {
-  margin-left: 4px;
+  flex-wrap: wrap;
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
 }
 
 .history-meta {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
+  transition: color var(--transition-duration);
 }
 
 .history-meta span {
@@ -363,6 +347,7 @@ defineExpose({
   gap: 4px;
 }
 
+/* ===== 操作按钮 ===== */
 .history-actions {
   display: flex;
   gap: 8px;
@@ -370,37 +355,62 @@ defineExpose({
   margin-left: 16px;
 }
 
+/* ===== 预览对话框 ===== */
+.preview-dialog :deep(.el-dialog__body) {
+  padding: 0 20px 20px;
+}
+
 .preview-content {
   max-height: 500px;
   overflow-y: auto;
   padding: 24px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: var(--bg-gray);
+  border-radius: var(--radius-md);
   line-height: 1.8;
   font-size: 15px;
+  color: var(--text-primary);
+  transition: background var(--transition-duration), color var(--transition-duration);
 }
 
 .preview-content :deep(pre) {
-  background: #f6f8fa;
+  background: var(--bg-dark);
   padding: 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: auto;
+  transition: background var(--transition-duration);
 }
 
 .preview-content :deep(code) {
-  background: #f6f8fa;
+  background: var(--bg-dark);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
+  color: var(--text-primary);
+  transition: background var(--transition-duration), color var(--transition-duration);
 }
 
 .preview-content :deep(blockquote) {
-  border-left: 4px solid #409eff;
+  border-left: 4px solid var(--theme-color);
   padding-left: 16px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 12px 0;
+  transition: border-color var(--transition-duration), color var(--transition-duration);
 }
 
+.preview-content :deep(h1),
+.preview-content :deep(h2),
+.preview-content :deep(h3),
+.preview-content :deep(h4) {
+  color: var(--text-primary);
+  transition: color var(--transition-duration);
+}
+
+.preview-content :deep(p) {
+  color: var(--text-regular);
+  transition: color var(--transition-duration);
+}
+
+/* ===== 预览底部 ===== */
 .preview-footer {
   display: flex;
   justify-content: space-between;
@@ -409,46 +419,28 @@ defineExpose({
 }
 
 .preview-info {
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 14px;
+  transition: color var(--transition-duration);
 }
 
-/* ===== 深色模式适配 ===== */
-:global(.dark-mode) .history-item {
-  border-color: #404040;
+/* ===== 暗色主题标签适配 ===== */
+.dark-theme .history-item.is-current {
+  background: rgba(103, 194, 58, 0.12);
 }
 
-:global(.dark-mode) .history-item:hover {
-  background: #2d2d2d;
+.dark-theme .history-item.is-current:hover {
+  background: rgba(103, 194, 58, 0.18);
 }
 
-:global(.dark-mode) .history-item.is-current {
-  background: #1e3a2a;
-}
-
-:global(.dark-mode) .history-item.is-current:hover {
-  background: #1a3324;
-}
-
-:global(.dark-mode) .preview-content {
-  background: #1e1e1e;
-  color: #d4d4d4;
-}
-
-:global(.dark-mode) .preview-content :deep(pre) {
-  background: #2d2d2d;
-}
-
-:global(.dark-mode) .preview-content :deep(code) {
-  background: #2d2d2d;
-}
-
-:global(.dark-mode) .history-meta {
-  color: #a0a0a0;
-}
-
-/* ===== 响应式 ===== */
+/* ============================================================
+   响应式
+   ============================================================ */
 @media (max-width: 768px) {
+  .history-dialog :deep(.el-dialog) {
+    width: 95% !important;
+  }
+
   .history-item {
     flex-direction: column;
     align-items: stretch;
@@ -465,10 +457,36 @@ defineExpose({
     white-space: normal;
   }
 
+  .preview-dialog :deep(.el-dialog) {
+    width: 95% !important;
+  }
+
   .preview-footer {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
+  }
+
+  .preview-content {
+    padding: 16px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-actions {
+    flex-wrap: wrap;
+  }
+
+  .history-actions .el-button {
+    flex: 1;
+    min-width: 60px;
+  }
+
+  .preview-content {
+    padding: 12px;
+    font-size: 13px;
+    max-height: 350px;
   }
 }
 </style>

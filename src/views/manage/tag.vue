@@ -1,7 +1,6 @@
-<!-- src/views/TagManage.vue - 使用分离的 API -->
-
+<!-- src/views/TagManage.vue - 使用全局公共样式 -->
 <template>
-  <div class="tag-manage">
+  <div class="tag-manage page-container">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -9,7 +8,7 @@
           <el-icon><PriceTag /></el-icon>
           标签管理
         </h2>
-        <span class="count">共 {{ tableData.length }} 个标签</span>
+        <span class="page-count">共 {{ tableData.length }} 个标签</span>
       </div>
       <div class="header-right">
         <el-button type="primary" :icon="Plus" @click="openDialog">新增标签</el-button>
@@ -17,11 +16,17 @@
     </div>
 
     <!-- 标签列表 -->
-    <el-card class="list-card" shadow="hover">
-      <el-table :data="tableData" border v-loading="loading" style="width: 100%">
+    <el-card class="list-card page-card" shadow="hover">
+      <el-table 
+        :data="tableData" 
+        border 
+        v-loading="loading" 
+        style="width: 100%"
+        class="page-table"
+      >
         <el-table-column prop="name" label="标签名称" min-width="200">
           <template #default="{ row }">
-            <el-tag type="primary" size="default">{{ row.name }}</el-tag>
+            <el-tag type="primary" size="default" class="tag-primary">{{ row.name }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" width="180" align="center">
@@ -31,7 +36,9 @@
         </el-table-column>
         <el-table-column label="操作" width="150" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="danger" link @click="handleDelete(row.id)">删除</el-button>
+            <el-button size="small" type="danger" link class="btn-link-danger" @click="handleDelete(row.id)">
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -50,6 +57,7 @@
       title="新增标签"
       width="420px"
       destroy-on-close
+      class="dialog-common"
     >
       <el-form
         ref="formRef"
@@ -63,15 +71,18 @@
             placeholder="请输入标签名称"
             maxlength="20"
             show-word-limit
+            class="input-common"
             @keyup.enter="submit"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit" :loading="submitting">
-          {{ submitting ? '保存中...' : '保存' }}
-        </el-button>
+        <div class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submit" :loading="submitting">
+            {{ submitting ? '保存中...' : '保存' }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -83,6 +94,7 @@ import { getTagList, createTag, deleteTag, type Tag } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { PriceTag, Plus } from '@element-plus/icons-vue'
 import { formatTime } from '@/utils/format'
+
 const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref<Tag[]>([])
@@ -103,7 +115,6 @@ async function load() {
   loading.value = true
   try {
     const res = await getTagList()
-    // 实际返回：res.data 直接是数组
     tableData.value = Array.isArray(res?.data) ? res.data : []
   } catch (error) {
     ElMessage.error('加载数据失败')
@@ -160,94 +171,29 @@ onMounted(load)
 </script>
 
 <style scoped>
+/* ============================================================
+   TagManage 专用样式
+   ============================================================ */
+
 .tag-manage {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 60px);
 }
 
-/* ===== 页面头部 ===== */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 12px;
+/* 删除按钮样式（已在全局 .btn-link-danger 中定义，此处保留以备覆盖） */
+:deep(.el-button--danger.is-link) {
+  color: #f56c6c !important;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+:deep(.el-button--danger.is-link:hover) {
+  color: #f78989 !important;
 }
 
-.page-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: #303133;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-}
-
-.page-title .el-icon {
-  color: #409EFF;
-}
-
-.count {
-  font-size: 14px;
-  color: #909399;
-}
-
-/* ===== 列表卡片 ===== */
-.list-card {
-  border-radius: 8px;
-}
-
-:deep(.list-card .el-card__body) {
-  padding: 0;
-}
-
-/* ===== 空状态 ===== */
-.empty-state {
-  padding: 40px 0;
-}
-
-/* ===== 对话框 ===== */
-:deep(.el-dialog) {
-  border-radius: 12px;
-}
-
-:deep(.el-dialog__header) {
-  padding: 16px 20px;
-  border-bottom: 1px solid #ebeef5;
-}
-
-:deep(.el-dialog__title) {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
-:deep(.el-dialog__body) {
-  padding: 20px;
-}
-
-:deep(.el-dialog__footer) {
-  padding: 12px 20px;
-  border-top: 1px solid #ebeef5;
-}
-
-/* ===== 响应式 ===== */
+/* ============================================================
+   响应式
+   ============================================================ */
 @media (max-width: 768px) {
   .tag-manage {
     padding: 12px;
-  }
-
-  .page-title {
-    font-size: 18px;
   }
 
   .page-header {
@@ -263,8 +209,35 @@ onMounted(load)
     width: 100%;
   }
 
-  :deep(.el-dialog) {
+  .dialog-common :deep(.el-dialog) {
     width: 92% !important;
+    margin: 16px auto !important;
+  }
+
+  .dialog-common :deep(.el-dialog__body) {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tag-manage {
+    padding: 8px;
+  }
+
+  .dialog-common :deep(.el-dialog) {
+    width: 96% !important;
+  }
+
+  .dialog-common :deep(.el-dialog__header) {
+    padding: 12px 16px;
+  }
+
+  .dialog-common :deep(.el-dialog__body) {
+    padding: 12px;
+  }
+
+  .dialog-common :deep(.el-dialog__footer) {
+    padding: 10px 16px;
   }
 }
 </style>
