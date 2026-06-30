@@ -1,7 +1,7 @@
 <template>
-  <div class="note-edit page-container" :class="{ 'dark-mode': isDarkMode }">
+  <div class="note-edit page-container" :class="{ 'dark-mode': isDarkMode, 'fullscreen-mode': isFullscreen }">
     <!-- ===== 页面头部 ===== -->
-    <div class="page-header">
+    <div class="page-header" v-if="!isFullscreen">
       <div class="header-left">
         <el-button :icon="ArrowLeft" @click="router.push('/note/list')">返回</el-button>
         <h2 class="page-title">{{ isEdit ? '编辑笔记' : '新建笔记' }}</h2>
@@ -47,7 +47,7 @@
     </div>
 
     <!-- ===== 笔记表单 ===== -->
-    <el-card class="form-card page-card" shadow="hover">
+    <el-card class="form-card page-card" shadow="hover" v-if="!isFullscreen">
       <el-form :model="form" label-width="100px">
         <el-form-item label="标题" required>
           <el-input
@@ -197,7 +197,7 @@
     </el-card>
 
     <!-- ===== 编辑器 ===== -->
-    <el-card class="editor-card page-card" shadow="hover">
+    <el-card class="editor-card page-card" shadow="hover" :class="{ 'fullscreen-mode': isFullscreen }">
       <div id="vditor"></div>
     </el-card>
 
@@ -244,6 +244,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+// @ts-ignore
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -287,6 +288,9 @@ import AIPanel from '@/components/ai/AIPanel.vue';
 import EditorTemplates from '@/components/editor/EditorTemplates.vue';
 import HistoryPanel from '@/components/history/HistoryPanel.vue';
 
+// ===== 导入事件总线 =====
+import { eventBus } from '@/utils/eventBus';
+
 // ============================================================
 // 基础
 // ============================================================
@@ -299,6 +303,7 @@ const saving = ref(false);
 const isSaved = ref(false);
 const isSaving = ref(false);
 let vditor: Vditor | null = null;
+const isFullscreen = ref(false);
 
 // ============================================================
 // 状态
@@ -381,15 +386,10 @@ const { registerShortcuts } = useKeyboardShortcuts({
 // ============================================================
 watch(isDarkMode, (newVal) => {
   if (vditor) {
-    // 更新 Vditor 主题
     const theme = newVal ? 'dark' : 'classic';
     vditor.setTheme(theme);
-    
-    // 更新代码高亮样式
     const hljsStyle = newVal ? 'dark' : 'github';
     vditor.setTheme(theme, hljsStyle);
-    
-    // 更新编辑器容器样式
     const editorEl = document.querySelector('#vditor');
     if (editorEl) {
       if (newVal) {
@@ -401,6 +401,40 @@ watch(isDarkMode, (newVal) => {
   }
 }, { immediate: true });
 
+// ============================================================
+// ⭐ 全屏控制
+// ============================================================
+function toggleFullscreen() {
+  console.log('toggleFullscreen 被调用'); // 调试日志
+  
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.()
+      .then(() => {
+        console.log('进入全屏成功');
+        isFullscreen.value = true;
+      })
+      .catch((err) => {
+        console.error('全屏请求失败:', err);
+        ElMessage.error('全屏请求失败');
+      });
+  } else {
+    document.exitFullscreen?.()
+      .then(() => {
+        console.log('退出全屏成功');
+        isFullscreen.value = false;
+      })
+      .catch((err) => {
+        console.error('退出全屏失败:', err);
+        ElMessage.error('退出全屏失败');
+      });
+  }
+}
+
+function handleFullscreenChange() {
+  const isFullscreenNow = !!document.fullscreenElement;
+  console.log('全屏状态变化:', isFullscreenNow);
+  isFullscreen.value = isFullscreenNow;
+}
 // ============================================================
 // ⭐ Element Plus 弹窗暗色模式适配
 // ============================================================
@@ -414,7 +448,6 @@ function getMessageBoxConfig(): any {
   };
 }
 
-// 重写 ElMessageBox 的调用，注入暗色模式配置
 const showConfirm = (message: string, title: string, options?: any) => {
   return ElMessageBox.confirm(message, title, {
     ...options,
@@ -432,7 +465,7 @@ const showPrompt = (message: string, title: string, options?: any) => {
 };
 
 // ============================================================
-// 密码验证（前端仅做格式校验，后端做哈希验证）
+// 密码验证
 // ============================================================
 
 function validatePassword() {
@@ -541,7 +574,7 @@ async function promptForPassword() {
         cancelButtonText: '取消',
         inputType: 'password',
         inputPlaceholder: '请输入访问密码',
-       inputValidator: (val: string) => {
+        inputValidator: (val: string) => {
           const check = EncryptUtil.validatePassword(val);
           if (!check.isValid) return check.message;
           return true;
@@ -708,7 +741,6 @@ async function loadDetail() {
 // ============================================================
 // 编辑器初始化
 // ============================================================
-
 function initEditor() {
   const accessToken = localStorage.getItem('accessToken') || '';
   const theme = isDarkMode.value ? 'dark' : 'classic';
@@ -723,21 +755,25 @@ function initEditor() {
     preview: {
       markdown: { toc: true, mark: true },
       hljs: { lineNumber: true, style: hljsStyle },
-      actions: [
-        'desktop', 'tablet', 'mobile',
-        {
-          tip: '阅读模式',
-          icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2zm0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8zm-1 4h2v6h-2V8zm0 8h2v2h-2v-2z" fill="currentColor"/></svg>',
-          handler: () => toggleReadMode()
-        } as any
-      ]
+      actions: ['desktop', 'tablet', 'mobile']
     },
+    // ===== 自定义工具栏 =====
     toolbar: [
       'emoji', 'headings', 'bold', 'italic', 'strike', '|',
       'list', 'ordered-list', 'check', '|',
       'quote', 'line', 'code', 'inline-code', '|',
       'upload', 'link', 'table', '|',
-      'undo', 'redo', '|', 'outline', 'preview', 'fullscreen'
+      'undo', 'redo', '|', 'outline', 'preview',
+      // 自定义全屏按钮 - 替换原有的 fullscreen
+      {
+        name: 'custom-fullscreen',
+        tip: '全屏编辑',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="none" d="M0 0h24v24H0z"/><path d="M16 3h5v5h-2V5h-3V3zM3 3h5v2H5v3H3V3zm18 13v5h-5v-2h3v-3h2zM3 16h2v3h3v2H3v-5z" fill="currentColor"/></svg>',
+        tipPosition: 'bottom',
+        click: () => {
+          toggleFullscreen();
+        }
+      }
     ],
     upload: {
       url: '/api/file/upload',
@@ -979,13 +1015,19 @@ onMounted(async () => {
   registerShortcuts();
   document.addEventListener('selectionchange', handleSelectionChange);
   document.addEventListener('mousedown', handleClickOutside);
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('selectionchange', handleSelectionChange);
   document.removeEventListener('mousedown', handleClickOutside);
+  document.removeEventListener('fullscreenchange', handleFullscreenChange);
   if (selectionTimer) clearTimeout(selectionTimer);
   stopAutoSave();
+  // 退出时通知 Layout 恢复侧边栏
+  if (isFullscreen.value) {
+    eventBus.emit('fullscreen:change', false);
+  }
   if (vditor && form.value.title) {
     autoSave({ title: form.value.title, content: vditor.getValue() });
   }
@@ -1004,9 +1046,142 @@ onBeforeUnmount(() => {
 /* ============================================================
    NoteEdit 专用样式
    ============================================================ */
+/* 全屏模式 - 覆盖整个屏幕 */
+.note-edit.fullscreen-mode {
+  padding: 0 !important;
+  margin: 0 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 99999 !important;
+  background: var(--bg-main);
+  overflow: hidden !important;
+}
 
-.note-edit {
-  padding: 24px;
+/* 全屏模式下的编辑器卡片 */
+.note-edit.fullscreen-mode .editor-card {
+  margin: 0 !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 99999 !important;
+}
+
+.note-edit.fullscreen-mode .editor-card :deep(.el-card__body) {
+  height: 100% !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.note-edit.fullscreen-mode #vditor {
+  height: 100vh !important;
+  border-radius: 0 !important;
+  z-index: 99999 !important;
+}
+
+.note-edit.fullscreen-mode :deep(.vditor) {
+  height: 100vh !important;
+  border-radius: 0 !important;
+  z-index: 99999 !important;
+  position: relative !important;
+}
+
+.note-edit.fullscreen-mode :deep(.vditor .vditor-reset) {
+  min-height: calc(100vh - 60px) !important;
+  max-height: calc(100vh - 60px) !important;
+  padding: 30px 40px !important;
+}
+
+/* Vditor 内置全屏 */
+:deep(.vditor--fullscreen) {
+  z-index: 999999 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: var(--card-bg) !important;
+}
+
+:deep(.vditor--fullscreen .vditor-toolbar) {
+  z-index: 999999 !important;
+}
+
+:deep(.vditor--fullscreen .vditor-reset) {
+  z-index: 999999 !important;
+}
+
+/* ===== Vditor 所有组件置顶 ===== */
+
+/* 基础容器 */
+#vditor {
+  position: relative;
+  z-index: 100 !important;
+}
+
+:deep(.vditor) {
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+/* 工具栏 */
+:deep(.vditor-toolbar) {
+  position: relative !important;
+  z-index: 110 !important;
+}
+
+:deep(.vditor-toolbar__item) {
+  position: relative !important;
+  z-index: 120 !important;
+}
+
+:deep(.vditor-toolbar__item:hover) {
+  z-index: 130 !important;
+}
+
+/* 预览区域 */
+:deep(.vditor-preview) {
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+/* 大纲 */
+:deep(.vditor-outline) {
+  position: relative !important;
+  z-index: 120 !important;
+}
+
+/* vditor 提示框层级置顶 */
+:deep(.vditor-tooltip) {
+  z-index: 9999999 !important;
+  position: fixed !important;
+}
+/* 自动补全提示 */
+:deep(.vditor-hint) {
+  z-index: 999999 !important;
+}
+
+/* 对话框 */
+:deep(.vditor-dialog) {
+  z-index: 999999 !important;
+}
+
+/* 消息提示 */
+:deep(.vditor-message) {
+  z-index: 999999 !important;
+}
+
+/* 暗色模式下的全屏 */
+.dark-mode :deep(.vditor--fullscreen) {
+  background: var(--card-bg) !important;
 }
 
 /* ===== 页面头部 ===== */
@@ -1102,10 +1277,15 @@ onBeforeUnmount(() => {
 /* ===== 卡片 ===== */
 .form-card {
   margin-bottom: 20px;
+  transition: all 0.3s ease;
 }
 
 .form-card :deep(.el-card__body) {
   padding: 20px 24px;
+}
+
+.editor-card {
+  transition: all 0.3s ease;
 }
 
 .editor-card :deep(.el-card__body) {
@@ -1118,6 +1298,7 @@ onBeforeUnmount(() => {
 #vditor {
   border-radius: var(--radius-md);
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 :deep(.vditor) {
@@ -1431,6 +1612,10 @@ onBeforeUnmount(() => {
   .selection-toolbar .el-button {
     font-size: 10px;
     padding: 4px 8px;
+  }
+
+  .note-edit.fullscreen-mode .editor-card {
+    height: 100vh;
   }
 }
 

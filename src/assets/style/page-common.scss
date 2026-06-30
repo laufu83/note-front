@@ -1074,3 +1074,82 @@ body .dark-theme .el-message--error {
 body .dark-theme .el-message--info {
   background-color: rgba(96, 165, 250, 0.15) !important;
 }
+/* 修复提示被遮挡 */
+.vditor-toolbar {
+  overflow: visible !important;
+}
+
+.vditor-toolbar__item {
+  overflow: visible !important;
+}
+
+/* Tooltip 基础样式 */
+.vditor-tooltip {
+  position: fixed !important;  /* 使用 fixed 定位，避免被父容器裁剪 */
+  background-color: #3a3a5a !important;
+  color: #e8e8e8 !important;
+  border: 1px solid #4a4a6a !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  padding: 4px 12px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3) !important;
+  z-index: 99999 !important;  /* 提高层级 */
+  pointer-events: none !important;
+  white-space: nowrap !important;
+  transition: opacity 0.2s ease !important;
+}
+
+/* Tooltip 箭头 */
+.vditor-tooltip::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  border: 6px solid transparent !important;
+}
+
+/* 提示在上方时，箭头在下方 */
+.vditor-tooltip--up::before {
+  top: 100% !important;
+  border-top-color: #3a3a5a !important;
+  border-bottom: none !important;
+}
+
+/* 提示在下方时，箭头在上方 */
+.vditor-tooltip--down::before {
+  bottom: 100% !important;
+  border-bottom-color: #3a3a5a !important;
+  border-top: none !important;
+}
+
+/* 暗色模式 */
+.dark-mode .vditor-tooltip {
+  background-color: #2d2d4a !important;
+  color: #e8e8e8 !important;
+  border-color: #4a4a6a !important;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark-mode .vditor-tooltip--up::before {
+  border-top-color: #2d2d4a !important;
+}
+
+.dark-mode .vditor-tooltip--down::before {
+  border-bottom-color: #2d2d4a !important;
+}
+
+/* 亮色模式 */
+:root:not(.dark-mode) .vditor-tooltip {
+  background-color: #ffffff !important;
+  color: #333333 !important;
+  border-color: #d0d0d0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+:root:not(.dark-mode) .vditor-tooltip--up::before {
+  border-top-color: #ffffff !important;
+}
+
+:root:not(.dark-mode) .vditor-tooltip--down::before {
+  border-bottom-color: #ffffff !important;
+}

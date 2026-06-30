@@ -1,7 +1,8 @@
 <template>
-  <el-container class="app-container" :class="themeClass">
-    <!-- ===== 侧边栏（移动端为抽屉） ===== -->
+  <el-container class="app-container" :class="[themeClass, { 'fullscreen-editor': isFullscreenEditor }]">
+    <!-- ===== 侧边栏 ===== -->
     <el-aside
+      v-show="!isFullscreenEditor"
       class="app-aside"
       :class="{
         'aside-mobile-open': isMobile && mobileMenuVisible
@@ -104,7 +105,7 @@
     <!-- ===== 主内容区 ===== -->
     <el-container class="main-container">
       <!-- 顶部导航 -->
-      <el-header class="app-header">
+      <el-header v-show="!isFullscreenEditor" class="app-header">
         <div class="header-left">
           <!-- 移动端：汉堡菜单按钮 -->
           <el-button
@@ -168,7 +169,7 @@
       </el-header>
 
       <!-- 主内容 -->
-      <el-main class="app-main">
+      <el-main class="app-main" :class="{ 'fullscreen-editor': isFullscreenEditor }">
         <router-view v-slot="{ Component }">
           <keep-alive>
             <component :is="Component" />
@@ -180,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import {
@@ -210,6 +211,14 @@ const collapsed = ref(false)
 const isMobile = ref(false)
 const mobileMenuVisible = ref(false)
 const isDark = ref(false)
+const isFullscreenEditor = ref(false)
+
+// ===== 监听全屏变化 =====
+const handleFullscreenChange = () => {
+  const isFullscreen = !!document.fullscreenElement
+  isFullscreenEditor.value = isFullscreen
+  console.log('全屏状态变化:', isFullscreen) // 调试日志
+}
 
 // ===== 主题管理 =====
 const THEME_KEY = 'app-theme'
@@ -294,10 +303,12 @@ onMounted(() => {
   setupSystemThemeListener()
   checkMobile()
   window.addEventListener('resize', checkMobile)
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', checkMobile)
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
   if (systemThemeListener) {
     mediaQuery.removeEventListener('change', systemThemeListener)
@@ -339,6 +350,26 @@ function handleCommand(cmd: string) {
 .app-container {
   height: 100vh;
   overflow: hidden;
+}
+
+/* ===== 全屏编辑器模式 ===== */
+.app-container.fullscreen-editor .app-aside {
+  display: none !important;
+}
+
+.app-container.fullscreen-editor .app-header {
+  display: none !important;
+}
+
+.app-container.fullscreen-editor .app-main {
+  padding: 0 !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+/* 全屏时隐藏滚动条 */
+.app-container.fullscreen-editor .app-main::-webkit-scrollbar {
+  display: none !important;
 }
 
 /* ===== 侧边栏 ===== */
@@ -559,6 +590,12 @@ function handleCommand(cmd: string) {
   transition: background 0.3s;
 }
 
+.app-main.fullscreen-editor {
+  padding: 0 !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
 /* ============================================================
    响应式
    ============================================================ */
@@ -621,7 +658,7 @@ function handleCommand(cmd: string) {
 }
 
 /* ============================================================
-   fadeIn 动画（用于移动端遮罩）
+   fadeIn 动画
    ============================================================ */
 @keyframes fadeIn {
   from {
