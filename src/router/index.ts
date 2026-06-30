@@ -47,7 +47,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/change-email",
-    name: "Activate",
+    name: "ChangeEmail",
     component: () => import("@/views/user/ChangeEmail.vue"),
     meta: { title: "账号激活" },
   },
@@ -161,6 +161,7 @@ router.beforeEach((to, _from, next) => {
     "Activate",
     "ActivateSuccess",
     "ActivateFail",
+    "ChangeEmail"
   ];
   if (publicRouteNames.includes(to.name as string)) {
     next();

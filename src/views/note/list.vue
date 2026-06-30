@@ -73,12 +73,23 @@
         <el-table-column label="标题" min-width="200" prop="title">
           <template #default="{ row }">
             <div class="title-cell">
+              <div class="title-row">
               <span class="title-text">{{ row.title || '无标题笔记' }}</span>
+              <el-tag
+                v-if="row.is_encrypted"
+                type="danger"
+                size="small"
+                effect="dark"
+                class="encrypt-tag"
+              >
+                <el-icon><Lock /></el-icon> 私密
+              </el-tag>
               <div class="title-tags">
                 <el-tag v-if="row.is_top" type="success" size="small" class="tag-success">置顶</el-tag>
                 <el-tag v-if="row.is_star" type="warning" size="small" effect="plain" class="tag-warning">收藏</el-tag>
                 <el-tag v-if="row.is_draft" type="info" size="small" class="tag-info">草稿</el-tag>
               </div>
+            </div>
             </div>
           </template>
         </el-table-column>
@@ -207,7 +218,7 @@ import {
   Document, 
   Plus, 
   Refresh, 
-  List
+  List, Lock
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -445,7 +456,17 @@ onMounted(loadList)
 .card-title .el-icon {
   color: var(--theme-color);
 }
-
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.encrypt-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 .title-cell {
   display: flex;
   flex-direction: column;

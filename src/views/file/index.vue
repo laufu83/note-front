@@ -8,7 +8,7 @@
             <el-icon><Folder /></el-icon>
             文件管理
           </h2>
-          <span class="page-count">共 {{ tableData.length }} 个文件</span>
+          <span class="page-count">共 {{ total }} 个文件</span>
         </div>
         <div class="header-right">
           <el-button type="primary" :icon="Upload" @click="triggerUpload">
@@ -55,6 +55,8 @@
               prefix-icon="Search"
               clearable
               class="search-input input-common"
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
             />
             <el-button size="small" :icon="Refresh" @click="loadData" />
           </div>
@@ -63,7 +65,7 @@
 
       <!-- 文件统计 -->
       <div class="stats-bar" v-if="tableData.length > 0">
-        <span class="stat-item">总文件：<b>{{ tableData.length }}</b></span>
+        <span class="stat-item">当前页：<b>{{ tableData.length }}</b></span>
         <span class="stat-item">图片：<b>{{ imageCount }}</b></span>
         <span class="stat-item">文档：<b>{{ documentCount }}</b></span>
         <span class="stat-item">其他：<b>{{ otherCount }}</b></span>
@@ -71,7 +73,7 @@
 
       <!-- 文件列表 -->
       <el-table 
-        :data="filteredData" 
+        :data="tableData" 
         border
         style="width: 100%"
         v-loading="loading"
@@ -118,8 +120,22 @@
         </el-table-column>
       </el-table>
 
+      <!-- 分页 -->
+      <div class="pagination-wrapper" v-if="total > 0">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+          class="pagination-common"
+        />
+      </div>
+
       <!-- 空状态 -->
-      <div v-if="filteredData.length === 0 && !loading" class="empty-state">
+      <div v-if="tableData.length === 0 && !loading" class="empty-state">
         <el-empty description="暂无文件，快来上传吧" :image-size="120">
           <el-button type="primary" @click="triggerUpload">立即上传</el-button>
         </el-empty>
@@ -149,7 +165,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { 
   Upload, 
   Refresh, 
@@ -161,7 +177,7 @@ import {
   Headset
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { getFileList, deleteFile as deleteFileApi, getFileUrl } from '@/api'
+import { getFileList, deleteFile as deleteFileApi, getFileUrl } from '@/api/file'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { formatCNTime } from '@/utils/format'
 
@@ -171,6 +187,13 @@ const tableData = ref<any[]>([])
 const searchKeyword = ref('')
 const previewVisible = ref(false)
 const previewFileData = ref<any>(null)
+const total = ref(0)
+
+// 分页参数
+const pagination = ref({
+  page: 1,
+  pageSize: 10
+})
 
 // 后端上传地址
 const uploadActionUrl = `${import.meta.env.VITE_API_BASE_URL}/api/file/upload`
@@ -180,7 +203,12 @@ const uploadHeaders = ref({
   Authorization: `Bearer ${userStore.accessToken}`
 })
 
-// 计算统计
+// 搜索防抖
+let searchTimer: number | null = null
+
+// ===== 计算属性 =====
+
+// 统计（基于当前页数据）
 const imageCount = computed(() => 
   tableData.value.filter(f => f.mime_type?.startsWith('image/')).length
 )
@@ -195,15 +223,6 @@ const documentCount = computed(() =>
 const otherCount = computed(() => 
   tableData.value.length - imageCount.value - documentCount.value
 )
-
-// 搜索过滤
-const filteredData = computed(() => {
-  if (!searchKeyword.value) return tableData.value
-  const keyword = searchKeyword.value.toLowerCase()
-  return tableData.value.filter(item => 
-    item.file_name?.toLowerCase().includes(keyword)
-  )
-})
 
 // ===== 工具函数 =====
 function getFileIcon(mimeType: string) {
@@ -256,14 +275,64 @@ function formatFileSize(bytes: number) {
 async function loadData() {
   loading.value = true
   try {
-    const res = await getFileList()
-    tableData.value = res?.data ?? []
+    const params = {
+      page: pagination.value.page,
+      pageSize: pagination.value.pageSize
+    }
+    const res = await getFileList(params)
+    // 适配你的API返回结构
+    if (res?.data) {
+      tableData.value = res.data.list || []
+      total.value = res.data.total || 0
+    } else {
+      tableData.value = []
+      total.value = 0
+    }
   } catch (error) {
+    console.error('加载文件列表失败:', error)
     ElMessage.error('加载文件列表失败')
+    tableData.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
 }
+
+// ===== 分页处理 =====
+function handlePageChange(page: number) {
+  pagination.value.page = page
+  loadData()
+  // 滚动到列表顶部
+  const listCard = document.querySelector('.file-list-card')
+  if (listCard) {
+    listCard.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+function handleSizeChange(size: number) {
+  pagination.value.pageSize = size
+  pagination.value.page = 1
+  loadData()
+}
+
+// ===== 搜索处理 =====
+function handleSearch() {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+  searchTimer = window.setTimeout(() => {
+    pagination.value.page = 1
+    loadData()
+    searchTimer = null
+  }, 300)
+}
+
+// 监听搜索关键词变化
+watch(searchKeyword, (newVal, oldVal) => {
+  if (newVal === '' && oldVal !== '') {
+    handleSearch()
+  }
+})
 
 // ===== 上传相关 =====
 function triggerUpload() {
@@ -281,6 +350,8 @@ function beforeUpload(file: File) {
 
 function handleSuccess() {
   ElMessage.success('文件上传成功')
+  // 上传成功后回到第一页
+  pagination.value.page = 1
   loadData()
 }
 
@@ -296,7 +367,8 @@ function previewFile(row: any) {
 
 async function copyUrl(path: string) {
   try {
-    await navigator.clipboard.writeText(getFileUrl(path))
+    const url = getFileUrl(path)
+    await navigator.clipboard.writeText(url)
     ElMessage.success('链接已复制到剪贴板')
   } catch {
     ElMessage.error('复制失败，请手动复制')
@@ -312,6 +384,7 @@ async function handleDeleteFile(path: string) {
     })
     await deleteFileApi({ path })
     ElMessage.success('文件已删除')
+    // 删除后重新加载当前页
     loadData()
   } catch (error) {
     if (error !== 'cancel') {
@@ -320,7 +393,10 @@ async function handleDeleteFile(path: string) {
   }
 }
 
-onMounted(loadData)
+// 挂载时加载数据
+onMounted(() => {
+  loadData()
+})
 </script>
 
 <style scoped>
@@ -349,6 +425,12 @@ onMounted(loadData)
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.page-count {
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: color var(--transition-duration);
 }
 
 /* ===== 上传卡片 ===== */
@@ -453,13 +535,22 @@ onMounted(loadData)
   width: 200px;
 }
 
-/* ===== 统计栏（使用全局 stats-bar，覆盖部分样式） ===== */
+/* ===== 统计栏 ===== */
 .stats-bar {
+  display: flex;
+  flex-wrap: wrap;
   gap: 24px;
+  padding: 12px 20px;
+  background: var(--bg-gray);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all var(--transition-duration);
 }
 
 .stats-bar .stat-item b {
   color: var(--text-primary);
+  font-weight: 600;
   transition: color var(--transition-duration);
 }
 
@@ -477,6 +568,33 @@ onMounted(loadData)
 
 .file-icon {
   font-size: 20px;
+}
+
+/* ===== 分页 ===== */
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  transition: border-color var(--transition-duration);
+}
+
+.pagination-wrapper :deep(.el-pagination) {
+  font-size: 13px;
+}
+
+.pagination-wrapper :deep(.el-pagination .el-pagination__total) {
+  color: var(--text-secondary);
+}
+
+/* ===== 空状态 ===== */
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty-state :deep(.el-empty__description) {
+  color: var(--text-secondary);
 }
 
 /* ===== 预览对话框 ===== */
@@ -513,6 +631,17 @@ onMounted(loadData)
 .preview-info strong {
   color: var(--text-primary);
   transition: color var(--transition-duration);
+}
+
+/* ============================================================
+   暗色模式适配
+   ============================================================ */
+.dark-mode .stats-bar {
+  background: var(--bg-dark);
+}
+
+.dark-mode .pagination-wrapper {
+  border-color: var(--border-color);
 }
 
 /* ============================================================
@@ -558,6 +687,15 @@ onMounted(loadData)
   .upload-icon {
     font-size: 40px;
   }
+
+  .pagination-wrapper {
+    padding: 12px 16px;
+  }
+
+  .pagination-wrapper :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 480px) {
@@ -597,6 +735,14 @@ onMounted(loadData)
 
   .preview-info {
     font-size: 13px;
+  }
+
+  .pagination-wrapper {
+    padding: 8px 12px;
+  }
+
+  .pagination-wrapper :deep(.el-pagination) {
+    font-size: 12px;
   }
 }
 </style>

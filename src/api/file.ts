@@ -31,8 +31,13 @@ export interface DeleteFileParams {
  * 获取文件列表
  * 实际返回：{ code: 0, msg: "ok", data: FileItem[] }
  */
-export const getFileList = () => {
-  return request.get<Resp<FileListResponse>>('/api/file')
+export const getFileList = (params: { page: number; pageSize: number }) => {
+  return request.get<Resp<{
+        list: FileItem[]
+        total: number
+        page: number
+        pageSize: number
+      }>>(`/api/file?page=${params.page}&pageSize=${params.pageSize}`)
 }
 
 /**

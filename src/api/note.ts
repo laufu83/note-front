@@ -9,7 +9,7 @@ import type { Resp } from '@/types/response';
 export interface Note {
   id: number;
   title: string;
-  content: string;
+  content: string | null;
   is_draft: boolean;
   is_star: boolean;
   is_top: boolean;
@@ -72,6 +72,10 @@ export interface CreateNoteParams {
   is_draft?: boolean;
   categoryIds?: number[];
   tagNames?: string[];
+  /** 是否开启加密 */
+  is_encrypted?: boolean;
+  /** 笔记访问密码，开启加密时必传，后端映射为 note_password */
+  note_password?: string;
 }
 
 /** 更新笔记参数 */
@@ -83,6 +87,12 @@ export interface UpdateNoteParams {
   is_draft?: boolean;
   categoryIds?: number[];
   tagNames?: string[];
+  /** 是否开启加密 */
+  is_encrypted?: boolean;
+  /** 访问密码，加密笔记修改时必须传入原密码校验 */
+  note_password?: string;
+  /** 新访问密码，修改笔记密码时传入 */
+  new_password?: string;
 }
 
 /** 回滚笔记参数 */
@@ -140,9 +150,27 @@ export const exportNote = (params: NoteListParams) => {
 /**
  * 获取笔记详情
  * GET /api/note/:id
+ * @param id 笔记ID
+ * @param password 加密笔记访问密码，非加密笔记不传
  */
-export const getNoteDetail = (id: number) => {
-  return request.get<Resp<Note>>(`/api/note/${id}`);
+export const getNoteDetail = (id: number, password?: string) => {
+  const query: Record<string, string> = {};
+  if (password) {
+    query.password = password;
+  }
+  return request.get<Resp<Note>>(`/api/note/${id}`, { params: query });
+};
+
+/**
+ * 校验加密笔记密码（基于详情接口封装）
+ */
+export const verifyNotePassword = async (noteId: number, password: string) => {
+  try {
+    await getNoteDetail(noteId, password);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 /**
@@ -220,14 +248,6 @@ export function getNoteHistory(id: number) {
 }
 
 /**
- * 创建历史版本
- * POST /api/note/history
- */
-// export const createNoteHistory = (data: CreateHistoryParams) => {
-//   return request.post<Resp<CreateHistoryResponse>>('/api/note/history', data);
-// };
-
-/**
  * 回滚到指定版本
  * POST /api/note/rollback
  */
@@ -287,7 +307,8 @@ export default {
   restoreNote,
   permanentDeleteNote,
   clearTrash,
-  
+  verifyNotePassword,
+
   // 历史版本
   getNoteHistoryList,
   rollbackNote,

@@ -1,4 +1,4 @@
-<!-- src/views/Login.vue - 添加冻结状态处理 -->
+<!-- src/views/Login.vue - 修复后的完整版本 -->
 
 <template>
   <div class="login-wrap">
@@ -68,7 +68,7 @@
 
         <div class="form-options">
           <el-checkbox v-model="rememberMe" size="default">记住我</el-checkbox>
-          <el-link type="primary" :underline="false" @click="openForgotDialog">忘记密码？</el-link>
+          <el-link type="primary" underline="never" @click="openForgotDialog">忘记密码？</el-link>
         </div>
 
         <el-button
@@ -82,10 +82,10 @@
           {{ loginLoading ? '登录中...' : '登 录' }}
         </el-button>
 
-        <!-- 注册入口 - 移到按钮下方 -->
+        <!-- 注册入口 -->
         <div class="register-link">
           <span>还没有账号？</span>
-          <el-link type="primary" @click="$router.push('/register')" :underline="false">立即注册</el-link>
+          <el-link type="primary" @click="$router.push('/register')" underline="never">立即注册</el-link>
         </div>
       </el-form>
 
@@ -115,7 +115,7 @@
         <p>您的账号还未完成邮箱激活，暂时无法登录。</p>
         <p>请前往注册邮箱查收激活邮件，若未收到可重新发送。</p>
       </div>
-      <el-form ref="resendRef" :model="resendForm" label-width="80px" class="mt-4">
+      <el-form ref="resendRef" :model="resendForm" :rules="resendRules" label-width="80px" class="mt-4">
         <el-form-item label="注册邮箱" prop="email">
           <el-input v-model="resendForm.email" placeholder="输入注册邮箱" />
         </el-form-item>
@@ -165,7 +165,6 @@ const frozenVisible = ref(false)
 const refreshLoginCaptcha = async () => {
   try {
     const res = await getCaptcha()
-     // 类型守卫：严格判断data存在
     if (!res.data) {
       ElMessage.error('服务端返回数据异常，请稍后重试')
       return
@@ -200,7 +199,7 @@ const loginRules: FormRules = {
 const validateCaptcha = async (key: string, code: string): Promise<string | null> => {
   try {
     const res = await verifyCaptcha({ key, code: code.toUpperCase() })
-    return res.data||null
+    return res.data || null
   } catch {
     refreshLoginCaptcha()
     return null
@@ -218,7 +217,6 @@ async function handleLogin() {
     loginForm.captchaToken = token
 
     const res = await login(loginForm)
-     // 类型守卫：严格判断data存在
     if (!res.data) {
       ElMessage.error('服务端返回数据异常，请稍后重试')
       return
@@ -227,20 +225,31 @@ async function handleLogin() {
     ElMessage.success('登录成功')
     router.replace('/dashboard')
   } catch (err: any) {
-    console.log(err.msg)
-    // 处理账号被冻结的情况
-    if (err?.msg?.includes('冻结')) {
+    console.error('登录失败:', err)
+    
+    // 获取错误消息（兼容不同返回结构）
+    const errorMsg = err?.msg || err?.message || err?.data?.msg || ''
+    
+    // 处理账号被冻结
+    if (errorMsg.includes('冻结') || errorMsg.includes('锁定') || errorMsg.includes('disabled') || errorMsg.includes('frozen')) {
       frozenVisible.value = true
       return
     }
     
     // 处理账号未激活
-    if (err?.msg?.includes('激活')) {
+    if (errorMsg.includes('激活') || errorMsg.includes('verify') || errorMsg.includes('active') || errorMsg.includes('未激活')) {
+      // 如果后端返回了邮箱，自动填充
+      if (err?.data?.email) {
+        resendForm.email = err.data.email
+      }
       openResendDialog()
       return
     }
     
-    // 其他错误由拦截器处理
+    // 其他错误由拦截器处理，但这里可以添加通用提示
+    if (!errorMsg.includes('验证码')) {
+      ElMessage.error(errorMsg || '登录失败，请稍后重试')
+    }
   } finally {
     loginLoading.value = false
   }
@@ -266,8 +275,10 @@ const handleSendResetPwd = async () => {
     await forgotRef.value?.validate()
     forgotLoading.value = true
     await sendResetPasswordEmail(forgotForm)
-    ElMessage.success('重置邮件已发送')
+    ElMessage.success('重置邮件已发送，请检查邮箱')
     forgotVisible.value = false
+  } catch (err: any) {
+    ElMessage.error(err?.msg || '发送失败，请稍后重试')
   } finally {
     forgotLoading.value = false
   }
@@ -278,8 +289,17 @@ const resendVisible = ref(false)
 const resendLoading = ref(false)
 const resendRef = ref<InstanceType<typeof ElForm>>()
 const resendForm = reactive({ email: '' })
+const resendRules: FormRules = {
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式错误', trigger: 'blur' }
+  ]
+}
 const openResendDialog = () => {
-  resendForm.email = ''
+  if (!resendForm.email) {
+    // 尝试从登录表单获取用户名作为邮箱提示
+    resendForm.email = loginForm.username.includes('@') ? loginForm.username : ''
+  }
   resendVisible.value = true
 }
 const handleResendActivate = async () => {
@@ -287,8 +307,10 @@ const handleResendActivate = async () => {
     await resendRef.value?.validate()
     resendLoading.value = true
     await resendActivateEmail(resendForm)
-    ElMessage.success('激活邮件已重发')
+    ElMessage.success('激活邮件已重新发送，请检查邮箱')
     resendVisible.value = false
+  } catch (err: any) {
+    ElMessage.error(err?.msg || '发送失败，请稍后重试')
   } finally {
     resendLoading.value = false
   }
@@ -541,7 +563,7 @@ const handleResendActivate = async () => {
   width: 100% !important;
 }
 
-/* ===== 注册链接 - 移到按钮下方 ===== */
+/* ===== 注册链接 ===== */
 .register-link {
   text-align: center;
   margin-top: 18px;
