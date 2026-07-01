@@ -10,11 +10,11 @@ export interface Note {
   id: number;
   title: string;
   content: string | null;
-  is_draft: boolean;
-  is_star: boolean;
-  is_top: boolean;
-  is_delete: boolean;
-  is_encrypted?: boolean;
+  is_draft: number;
+  is_star: number;
+  is_top: number;
+  is_deleted: number;
+  is_encrypted?: number;
   categoryIds?: number[];
   categoryNames?: string[];
   tagNames?: string[];
@@ -36,6 +36,7 @@ export interface NoteHistory {
   user_id?: number;
   user_name?: string;
   word_count?: number;
+  is_deleted: number;
 }
 
 /** 笔记列表查询参数 */
@@ -44,14 +45,14 @@ export interface NoteListParams {
   size?: number;
   keyword?: string;
   q?: string;
-  is_draft?: boolean;
-  is_star?: boolean;
-  is_top?: boolean;
-  is_delete?: boolean;
+  is_draft?: number;
+  is_star?: number;
+  is_top?: number;
+  is_deleted?: number;
   trash?: number;
   categoryId?: number;
   tagName?: string;
-  is_encrypted?: boolean;
+  is_encrypted?: number;
 }
 
 /** 笔记列表响应 */
@@ -67,13 +68,13 @@ export interface NoteListResponse {
 export interface CreateNoteParams {
   title: string;
   content: string;
-  is_top?: boolean;
-  is_star?: boolean;
-  is_draft?: boolean;
+  is_top?: number;
+  is_star?: number;
+  is_draft?: number;
   categoryIds?: number[];
   tagNames?: string[];
-  /** 是否开启加密 */
-  is_encrypted?: boolean;
+  /** 是否开启加密 0关闭 1开启 */
+  is_encrypted?: number;
   /** 笔记访问密码，开启加密时必传，后端映射为 note_password */
   note_password?: string;
 }
@@ -82,13 +83,13 @@ export interface CreateNoteParams {
 export interface UpdateNoteParams {
   title?: string;
   content?: string;
-  is_top?: boolean;
-  is_star?: boolean;
-  is_draft?: boolean;
+  is_top?: number;
+  is_star?: number;
+  is_draft?: number;
   categoryIds?: number[];
   tagNames?: string[];
-  /** 是否开启加密 */
-  is_encrypted?: boolean;
+  /** 是否开启加密 0关闭 1开启 */
+  is_encrypted?: number;
   /** 访问密码，加密笔记修改时必须传入原密码校验 */
   note_password?: string;
   /** 新访问密码，修改笔记密码时传入 */

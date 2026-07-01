@@ -44,6 +44,7 @@
             <el-option label="草稿" value="draft" />
             <el-option label="已收藏" value="star" />
             <el-option label="置顶" value="top" />
+            <el-option label="回收站" value="trash" />
           </el-select>
           <el-button :icon="Refresh" @click="loadList" class="btn-default">刷新</el-button>
         </div>
@@ -207,7 +208,6 @@
     </el-dialog>
   </div>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -250,10 +250,18 @@ async function loadList() {
       q: query.value.keyword
     }
     
-    if (query.value.status === 'draft') params.is_draft = true
-    else if (query.value.status === 'star') params.is_star = true
-    else if (query.value.status === 'top') params.is_top = true
-    else if (query.value.status === 'published') params.is_draft = false
+    // 修正：布尔值改为 0 / 1 数字，对齐数据库 smallint
+    if (query.value.status === 'draft') {
+      params.is_draft = 1
+    } else if (query.value.status === 'star') {
+      params.is_star = 1
+    } else if (query.value.status === 'top') {
+      params.is_top = 1
+    } else if (query.value.status === 'published') {
+      params.is_draft = 0
+    } else if (query.value.status === 'trash') {
+      params.is_deleted = 1
+    }
 
     const res = await getNoteList(params)
     tableData.value = res?.data?.list || []

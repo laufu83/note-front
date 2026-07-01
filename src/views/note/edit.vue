@@ -64,12 +64,14 @@
         <el-form-item label="加密笔记">
           <div class="encrypt-control">
             <el-switch
-              v-model="form.isEncrypted"
+              v-model="form.is_encrypted"
+              :active-value="1"
+              :inactive-value="0"
               @change="handleEncryptToggle"
               size="default"
               active-text="已加密"
               inactive-text="未加密"
-              :class="{ 'is-encrypted': form.isEncrypted }"    
+              :class="{ 'is-encrypted': form.is_encrypted === 1 }"    
             />
             <el-tooltip
               content="开启后，笔记内容将在服务端加密存储，查看时需要输入密码"
@@ -92,10 +94,10 @@
         >
           <div class="password-input-group">
             <el-input
-              v-model="form.password"
+              v-model="form.note_password"
               type="password"
               show-password
-              :placeholder="form.isEncrypted 
+              :placeholder="form.is_encrypted === 1
                 ? '请设置访问密码（至少6位，包含字母+数字）'
                 : '关闭加密请输入当前笔记原访问密码'"
               class="input-common"
@@ -103,7 +105,7 @@
             />
             <!-- 仅编辑原有加密笔记才显示修改密码 -->
             <el-button 
-              v-if="isEdit && originIsEncrypted && form.isEncrypted"
+              v-if="isEdit && originIsEncrypted && form.is_encrypted === 1"
               type="primary" 
               link 
               @click="showChangePassword = !showChangePassword"
@@ -113,18 +115,18 @@
           </div>
           <div class="form-tip">
             <el-icon><InfoFilled /></el-icon>
-            <span v-if="form.isEncrypted">密码用于服务端加密/解密笔记内容，请妥善保管。忘记密码将无法查看笔记内容。</span>
+            <span v-if="form.is_encrypted === 1">密码用于服务端加密/解密笔记内容，请妥善保管。忘记密码将无法查看笔记内容。</span>
             <span v-else>关闭加密需要验证原密码，验证通过后笔记正文将转为明文永久存储。</span>
           </div>
         </el-form-item>
 
         <!-- 修改密码：仅原有加密笔记编辑时可用 -->
         <el-form-item 
-          v-if="showChangePassword && form.isEncrypted && isEdit && originIsEncrypted" 
+          v-if="showChangePassword && form.is_encrypted === 1 && isEdit && originIsEncrypted" 
           label="新密码"
         >
           <el-input
-            v-model="form.newPassword"
+            v-model="form.new_password"
             type="password"
             show-password
             placeholder="请输入新密码（至少6位，包含字母+数字）"
@@ -136,7 +138,7 @@
 
         <!-- 加密状态提示 -->
         <el-alert
-          v-if="form.isEncrypted"
+          v-if="form.is_encrypted === 1"
           type="warning"
           :closable="false"
           show-icon
@@ -147,12 +149,11 @@
           </template>
         </el-alert>
 
+        <!-- 属性：替换checkbox-group为独立绑定0/1 -->
         <el-form-item label="属性">
-          <el-checkbox-group v-model="form.properties">
-            <el-checkbox value="is_top" label="置顶" />
-            <el-checkbox value="is_star" label="收藏" />
-            <el-checkbox value="is_draft" label="草稿" />
-          </el-checkbox-group>
+          <el-checkbox v-model="form.is_top" :true-value="1" :false-value="0">置顶</el-checkbox>
+          <el-checkbox v-model="form.is_star" :true-value="1" :false-value="0">收藏</el-checkbox>
+          <el-checkbox v-model="form.is_draft" :true-value="1" :false-value="0">草稿</el-checkbox>
         </el-form-item>
 
         <el-form-item label="分类">
@@ -309,7 +310,7 @@ const isFullscreen = ref(false);
 // 状态
 // ============================================================
 const showPasswordInput = computed(() => {
-  return form.value.isEncrypted || (isEdit.value && originIsEncrypted.value);
+  return form.value.is_encrypted === 1 || (isEdit.value && originIsEncrypted.value);
 });
 
 const showAIPanel = ref(false);
@@ -333,24 +334,38 @@ let selectionTimer: number | null = null;
 // 缓存编辑原始数据
 const originCategoryIds = ref<number[]>([]);
 const originTagNames = ref<string[]>([]);
-const originIsEncrypted = ref(false);
+const originIsEncrypted = ref(0);
 
 // 解密失败重试次数
 const decryptRetryCount = ref(0);
 
 // ============================================================
-// 表单数据
+// 表单数据 对齐后端 0/1 数字类型
 // ============================================================
+type NoteForm = {
+  title: string
+  content: string
+  categoryIds: number[]
+  tagNames: string[]
+  is_top: number
+  is_star: number
+  is_draft: number
+  is_encrypted: number
+  note_password: string
+  new_password: string
+}
 
-const form = ref({
+const form = ref<NoteForm>({
   title: '',
   content: '',
-  properties: [] as string[],
-  categoryIds: [] as number[],
-  tagNames: [] as string[],
-  isEncrypted: false,
-  password: '',
-  newPassword: ''
+  categoryIds: [],
+  tagNames: [],
+  is_top: 0,
+  is_star: 0,
+  is_draft: 0,
+  is_encrypted: 0,
+  note_password: '',
+  new_password: ''
 });
 
 const categoryList = ref<any[]>([]);
@@ -405,8 +420,8 @@ watch(isDarkMode, (newVal) => {
 // ⭐ 全屏控制
 // ============================================================
 function toggleFullscreen() {
-  console.log('toggleFullscreen 被调用'); // 调试日志
-  
+  console.log('toggleFullscreen 被调用');
+
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen?.()
       .then(() => {
@@ -469,11 +484,11 @@ const showPrompt = (message: string, title: string, options?: any) => {
 // ============================================================
 
 function validatePassword() {
-  if (!form.value.password) {
+  if (!form.value.note_password) {
     passwordError.value = '';
     return;
   }
-  const result = EncryptUtil.validatePassword(form.value.password);
+  const result = EncryptUtil.validatePassword(form.value.note_password);
   if (!result.isValid) {
     passwordError.value = result.message || '';
   } else {
@@ -482,11 +497,11 @@ function validatePassword() {
 }
 
 function validateNewPassword() {
-  if (!form.value.newPassword) {
+  if (!form.value.new_password) {
     passwordError.value = '';
     return;
   }
-  const result = EncryptUtil.validatePassword(form.value.newPassword);
+  const result = EncryptUtil.validatePassword(form.value.new_password);
   if (!result.isValid) {
     passwordError.value = result.message || '';
   } else {
@@ -498,15 +513,15 @@ function validateNewPassword() {
 // 加密控制
 // ============================================================
 
-function handleEncryptToggle(value: boolean) {
-  if (value) {
+function handleEncryptToggle(value: number) {
+  if (value === 1) {
     ElMessage.info('请在下方输入框设置笔记访问密码，密码必须6位以上且包含字母+数字');
     return;
   }
 
   if (!originIsEncrypted.value) {
-    form.value.password = '';
-    form.value.newPassword = '';
+    form.value.note_password = '';
+    form.value.new_password = '';
     showChangePassword.value = false;
     passwordError.value = '';
     ElMessage.info('已关闭笔记加密');
@@ -522,17 +537,17 @@ function handleEncryptToggle(value: boolean) {
       type: 'warning'
     }
   ).then(() => {
-    if (!form.value.password) {
-      form.value.isEncrypted = true;
+    if (!form.value.note_password) {
+      form.value.is_encrypted = 1;
       ElMessage.warning('关闭加密必须填写当前笔记访问密码，用于解密校验');
       return;
     }
     showChangePassword.value = false;
-    form.value.newPassword = '';
+    form.value.new_password = '';
     passwordError.value = '';
     ElMessage.success('已确认关闭加密，保存后笔记将转为明文');
   }).catch(() => {
-    form.value.isEncrypted = true;
+    form.value.is_encrypted = 1;
   });
 }
 
@@ -552,7 +567,7 @@ async function decryptNoteWithPassword(password: string): Promise<boolean> {
       form.value.title = data.title || '';
       form.value.categoryIds = data.categoryIds || [];
       form.value.tagNames = data.tagNames || [];
-      form.value.password = password;
+      form.value.note_password = password;
       decryptRetryCount.value = 0;
       ElMessage.success('解密成功');
       return true;
@@ -701,21 +716,22 @@ async function loadDetail() {
     form.value.title = data.title || '';
     form.value.categoryIds = data.categoryIds || [];
     form.value.tagNames = data.tagNames || [];
-    form.value.isEncrypted = data.is_encrypted || false;
+    form.value.is_encrypted = data.is_encrypted ?? 0;
+    form.value.is_top = data.is_top ?? 0;
+    form.value.is_star = data.is_star ?? 0;
+    form.value.is_draft = data.is_draft ?? 0;
 
     originCategoryIds.value = [...form.value.categoryIds];
     originTagNames.value = [...form.value.tagNames];
-    originIsEncrypted.value = form.value.isEncrypted;
+    originIsEncrypted.value = form.value.is_encrypted;
 
-    form.value.properties = [];
-    if (data.is_top) form.value.properties.push('is_top');
-    if (data.is_star) form.value.properties.push('is_star');
-    if (data.is_draft) form.value.properties.push('is_draft');
+    form.value.note_password = '';
+    form.value.new_password = '';
 
-    if (data.is_encrypted) {
+    if (data.is_encrypted === 1) {
       const tempPassword = sessionStorage.getItem(`note_${noteId.value}_password`);
       if (tempPassword) {
-        form.value.password = tempPassword;
+        form.value.note_password = tempPassword;
         sessionStorage.removeItem(`note_${noteId.value}_password`);
         try {
           await decryptNoteWithPassword(tempPassword);
@@ -745,7 +761,7 @@ function initEditor() {
   const accessToken = localStorage.getItem('accessToken') || '';
   const theme = isDarkMode.value ? 'dark' : 'classic';
   const hljsStyle = isDarkMode.value ? 'dark' : 'github';
-  
+
   vditor = new Vditor('vditor', {
     height: 500,
     mode: 'sv',
@@ -757,14 +773,12 @@ function initEditor() {
       hljs: { lineNumber: true, style: hljsStyle },
       actions: ['desktop', 'tablet', 'mobile']
     },
-    // ===== 自定义工具栏 =====
     toolbar: [
       'emoji', 'headings', 'bold', 'italic', 'strike', '|',
       'list', 'ordered-list', 'check', '|',
       'quote', 'line', 'code', 'inline-code', '|',
       'upload', 'link', 'table', '|',
       'undo', 'redo', '|', 'outline', 'preview',
-      // 自定义全屏按钮 - 替换原有的 fullscreen
       {
         name: 'custom-fullscreen',
         tip: '全屏编辑',
@@ -852,7 +866,7 @@ function applyTemplate(template: any) {
 async function handleExport(command: string) {
   const content = vditor?.getValue() || '';
   const title = form.value.title || '未命名笔记';
-  if (form.value.isEncrypted) {
+  if (form.value.is_encrypted === 1) {
     try {
       await showConfirm(
         '⚠️ 此笔记已加密，导出的是解密后的内容，请确认是否继续？',
@@ -902,7 +916,7 @@ async function restoreVersion(version: any) {
 }
 
 // ============================================================
-// 保存逻辑
+// 保存逻辑 对齐后端数字字段
 // ============================================================
 
 function isArrayEqual(a: any[], b: any[]): boolean {
@@ -912,7 +926,7 @@ function isArrayEqual(a: any[], b: any[]): boolean {
 async function handleSave() {
   const content = vditor?.getValue() || '';
   const title = form.value.title.trim();
-  
+
   if (!title) {
     ElMessage.warning('请输入笔记标题');
     return;
@@ -922,18 +936,18 @@ async function handleSave() {
     return;
   }
 
-  if (form.value.isEncrypted) {
-    if (!form.value.password) {
+  if (form.value.is_encrypted === 1) {
+    if (!form.value.note_password) {
       ElMessage.warning('开启笔记加密必须设置访问密码');
       return;
     }
-    const check = EncryptUtil.validatePassword(form.value.password);
+    const check = EncryptUtil.validatePassword(form.value.note_password);
     if (!check.isValid) {
       ElMessage.warning(check.message || '密码格式不合法');
       return;
     }
-    if (form.value.newPassword?.trim()) {
-      const newCheck = EncryptUtil.validatePassword(form.value.newPassword);
+    if (form.value.new_password?.trim()) {
+      const newCheck = EncryptUtil.validatePassword(form.value.new_password);
       if (!newCheck.isValid) {
         ElMessage.warning(newCheck.message);
         return;
@@ -941,8 +955,8 @@ async function handleSave() {
     }
   }
 
-  if (!form.value.isEncrypted && originIsEncrypted.value) {
-    if (!form.value.password) {
+  if (form.value.is_encrypted === 0 && originIsEncrypted.value === 1) {
+    if (!form.value.note_password) {
       ElMessage.warning('关闭加密必须填写当前笔记原访问密码');
       return;
     }
@@ -950,41 +964,39 @@ async function handleSave() {
 
   saving.value = true;
   try {
-    const baseParams = {
+    const baseParams: CreateNoteParams = {
       title,
       content,
-      is_top: form.value.properties.includes('is_top'),
-      is_star: form.value.properties.includes('is_star'),
-      is_draft: form.value.properties.includes('is_draft'),
+      is_top: form.value.is_top,
+      is_star: form.value.is_star,
+      is_draft: form.value.is_draft,
       categoryIds: form.value.categoryIds,
       tagNames: form.value.tagNames,
-      is_encrypted: form.value.isEncrypted,
-      note_password: form.value.password || undefined,
-      new_password: (form.value.isEncrypted && form.value.newPassword?.trim()) 
-        ? form.value.newPassword 
-        : undefined
+      is_encrypted: form.value.is_encrypted,
+      note_password: form.value.note_password || undefined
     };
 
     if (isEdit.value) {
       const updatePayload: UpdateNoteParams = { ...baseParams };
-      
+
       if (isArrayEqual(form.value.categoryIds, originCategoryIds.value)) {
         delete updatePayload.categoryIds;
       }
       if (isArrayEqual(form.value.tagNames, originTagNames.value)) {
         delete updatePayload.tagNames;
       }
-      
-      if (originIsEncrypted.value && !form.value.newPassword?.trim()) {
+
+      if (originIsEncrypted.value === 1 && !form.value.new_password?.trim()) {
         delete updatePayload.new_password;
       }
-      
-      if (originIsEncrypted.value && !form.value.isEncrypted) {
-        updatePayload.note_password = form.value.password;
+      if (originIsEncrypted.value === 1 && form.value.is_encrypted === 0) {
+        updatePayload.note_password = form.value.note_password;
       }
-      
-      if (!originIsEncrypted.value && form.value.isEncrypted) {
-        updatePayload.note_password = form.value.password;
+      if (originIsEncrypted.value === 0 && form.value.is_encrypted === 1) {
+        updatePayload.note_password = form.value.note_password;
+      }
+      if (form.value.is_encrypted === 1 && form.value.new_password?.trim()) {
+        updatePayload.new_password = form.value.new_password;
       }
 
       await updateNote(noteId.value, updatePayload);
@@ -1024,7 +1036,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('fullscreenchange', handleFullscreenChange);
   if (selectionTimer) clearTimeout(selectionTimer);
   stopAutoSave();
-  // 退出时通知 Layout 恢复侧边栏
   if (isFullscreen.value) {
     eventBus.emit('fullscreen:change', false);
   }
